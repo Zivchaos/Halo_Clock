@@ -4,7 +4,7 @@
 
 namespace Hardware
 {
-    constexpr uint8_t LED_PIN = 18;      
+    constexpr uint8_t LED_PIN = 18;
     constexpr uint8_t LED_COUNT = 60;
     constexpr uint8_t LED_BRIGHTNESS = 40;
 

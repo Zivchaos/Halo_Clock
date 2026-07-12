@@ -1,5 +1,7 @@
 #pragma once
 
+#include <time.h>
+
 class Oled
 {
 public:
@@ -11,5 +13,7 @@ public:
     static void status(
         const char* line1,
         const char* line2);
+
+    static void time(const tm& localTime);
 
 };

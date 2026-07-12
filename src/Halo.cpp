@@ -51,4 +51,6 @@ void Halo::update()
 
         Serial.println("[HALO] Alive");
     }
+
+    Clock::update();
 }

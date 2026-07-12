@@ -41,11 +41,8 @@ void LedRing::bootAnimation()
     }
 
     strip.clear();
-    for (int i = 0; i < 60; i += 5)
-    {
-    strip.setPixelColor(i, 30, 30, 30);
-    }
-strip.show();
+    strip.setBrightness(Hardware::LED_BRIGHTNESS);
+    strip.show();
 }
 
 void LedRing::drawClock(
@@ -58,7 +55,7 @@ void LedRing::drawClock(
     //
     // Hour ticks
     //
-    for (int i = 0; i < 60; i += 5)
+    for (uint8_t i = 0; i < Hardware::LED_COUNT; i += 5)
     {
         strip.setPixelColor(i, 25, 25, 25);
     }
@@ -66,7 +63,7 @@ void LedRing::drawClock(
     //
     // Minutes
     //
-    for (int i = 0; i < minute; i++)
+    for (uint8_t i = 0; i < minute; i++)
     {
         strip.setPixelColor(i, 80, 80, 0);
     }
@@ -74,11 +71,11 @@ void LedRing::drawClock(
     //
     // Hours
     //
-    int h = (hour % 12) * 5;
+    const uint8_t h = ((hour % 12) * 5 + minute / 12) % Hardware::LED_COUNT;
 
-    strip.setPixelColor((h + 59) % 60, 120, 40, 0);
+    strip.setPixelColor((h + 59) % 60, 80, 25, 0);
     strip.setPixelColor(h,               255, 80, 0);
-    strip.setPixelColor((h + 1) % 60,    120, 40, 0);
+    strip.setPixelColor((h + 1) % 60,    80, 25, 0);
 
     //
     // Seconds
