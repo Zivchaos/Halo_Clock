@@ -1,27 +1,23 @@
 #include "Clock.h"
-#include <WiFi.h>
-#include <time.h>
 #include "LedRing.h"
+#include "Oled.h"
+#include "TimeService.h"
 
 void Clock::begin()
 {
-    configTime(0, 0, "pool.ntp.org");
-
-    setenv("TZ", "IST-2IDT,M3.4.4/26,M10.5.0", 1);
-    tzset();
+    TimeService::begin();
 }
 
 void Clock::update()
 {
-    time_t now;
-    struct tm timeinfo;
+    TimeService::update();
 
-    time(&now);
+    if (!TimeService::hasChanged())
+    {
+        return;
+    }
 
-    localtime_r(&now, &timeinfo);
-
-    LedRing::drawClock(
-        timeinfo.tm_hour,
-        timeinfo.tm_min,
-        timeinfo.tm_sec);
+    const tm& localTime = TimeService::localTime();
+    Oled::time(localTime);
+    LedRing::drawClock(localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
 }
