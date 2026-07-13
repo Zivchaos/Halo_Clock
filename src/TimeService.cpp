@@ -15,8 +15,18 @@ namespace
     bool synchronized = false;
     bool changed = false;
     bool ntpConfigured = false;
-
+    wl_status_t previousWifiStatus = WL_IDLE_STATUS;
     constexpr time_t MINIMUM_VALID_EPOCH = 1704067200; // 2024-01-01 UTC
+
+    void configureNtp()
+    {
+        configTzTime(
+            Config::ISRAEL_TIMEZONE,
+            Config::NTP_SERVER_PRIMARY,
+            Config::NTP_SERVER_SECONDARY);
+        ntpConfigured = true;
+        Serial.printf("[TIME] NTP configured for Israel; IP: %s\n", WiFi.localIP().toString().c_str());
+    }
 }
 
 void TimeService::begin()
@@ -27,12 +37,17 @@ void TimeService::begin()
     }
 
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
     wifiManager.setConfigPortalBlocking(false);
     wifiManager.setConfigPortalTimeout(Config::WIFI_PORTAL_TIMEOUT_SECONDS);
     wifiManager.setConnectTimeout(15);
-    wifiManager.autoConnect(Config::WIFI_PORTAL_NAME);
-
+    wifiManager.setAPCallback([](WiFiManager*) {
+        Oled::status("WiFi Setup", Config::WIFI_PORTAL_NAME);
+        Serial.println("[WIFI] Configuration portal started at 192.168.4.1");
+    });
     Oled::status("Connecting WiFi", Config::WIFI_PORTAL_NAME);
+    wifiManager.autoConnect(Config::WIFI_PORTAL_NAME, Config::WIFI_PORTAL_PASSWORD);
+    previousWifiStatus = WiFi.status();
 }
 
 void TimeService::update()
@@ -45,16 +60,24 @@ void TimeService::update()
     }
 
     wifiManager.process();
+    const wl_status_t status = WiFi.status();
 
-    if (WiFi.status() == WL_CONNECTED && !ntpConfigured)
+    if (status != previousWifiStatus)
     {
-        configTzTime(
-            Config::ISRAEL_TIMEZONE,
-            Config::NTP_SERVER_PRIMARY,
-            Config::NTP_SERVER_SECONDARY);
-        ntpConfigured = true;
-        Serial.print("[TIME] NTP configured; IP: ");
-        Serial.println(WiFi.localIP());
+        if (status == WL_CONNECTED)
+        {
+            Serial.printf("[WIFI] Connected: %s\n", WiFi.localIP().toString().c_str());
+        }
+        else if (previousWifiStatus == WL_CONNECTED)
+        {
+            Serial.println("[WIFI] Connection lost; reconnecting");
+        }
+        previousWifiStatus = status;
+    }
+
+    if (status == WL_CONNECTED && !ntpConfigured)
+    {
+        configureNtp();
     }
 
     const time_t now = time(nullptr);
@@ -69,8 +92,12 @@ void TimeService::update()
     }
 
     lastRenderedSecond = now;
-    synchronized = true;
     changed = true;
+    if (!synchronized)
+    {
+        synchronized = true;
+        Serial.println("[TIME] Israel local time synchronized");
+    }
 }
 
 bool TimeService::isSynchronized()
