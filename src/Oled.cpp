@@ -91,3 +91,12 @@ void Oled::displayMode(DisplayMode mode)
     centerText(DisplayModes::name(mode), 51);
     oled.sendBuffer();
 }
+
+void Oled::notice(const char* message, DisplayMode mode)
+{
+    oled.clearBuffer();
+    oled.setContrast(mode == DisplayMode::NIGHT ? Config::NIGHT_OLED_CONTRAST : 255);
+    oled.setFont(u8g2_font_7x14B_tf);
+    centerText(message, 38);
+    oled.sendBuffer();
+}
