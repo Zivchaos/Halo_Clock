@@ -7,11 +7,23 @@
 #include "Config.h"
 #include "Ledring.h"
 #include "Oled.h"
+#include "SettingsService.h"
 #include "Version.h"
+
+namespace
+{
+    DisplayMode activeDisplayMode = DisplayMode::CLASSIC;
+
+    void logDisplayMode()
+    {
+        Serial.printf("DISPLAY MODE: %s\n", DisplayModes::name(activeDisplayMode));
+    }
+}
 
 void Halo::begin()
 {
     Serial.begin(Config::SERIAL_BAUD);
+    SettingsService::begin();
     Button::begin();
     Oled::begin();
     Oled::splash();
@@ -21,9 +33,10 @@ void Halo::begin()
     delay(400);
     Oled::status("HALO", "READY");
     delay(400);
-    LedRing::begin();
+    LedRing::begin(SettingsService::brightness());
     LedRing::bootAnimation();
     delay(200);
+    activeDisplayMode = SettingsService::displayMode();
 
     if constexpr (Config::ENABLE_RING_CALIBRATION)
     {
@@ -32,8 +45,10 @@ void Halo::begin()
     }
     else
     {
-        Clock::begin();
+        LedRing::setDisplayMode(activeDisplayMode);
+        Clock::begin(activeDisplayMode);
     }
+    logDisplayMode();
 
     Serial.println();
     Serial.println("========================================");
@@ -54,7 +69,19 @@ void Halo::update()
     const ButtonEvent buttonEvent = Button::update();
     if (buttonEvent == ButtonEvent::ShortPress)
     {
-        LedRing::cycleBrightness();
+        SettingsService::saveBrightness(LedRing::cycleBrightness());
+    }
+    else if (buttonEvent == ButtonEvent::LongPress)
+    {
+        activeDisplayMode = DisplayModes::next(activeDisplayMode);
+        SettingsService::saveDisplayMode(activeDisplayMode);
+        logDisplayMode();
+
+        if constexpr (!Config::ENABLE_RING_CALIBRATION)
+        {
+            LedRing::setDisplayMode(activeDisplayMode);
+            Clock::setDisplayMode(activeDisplayMode);
+        }
     }
 
     if constexpr (!Config::ENABLE_RING_CALIBRATION)

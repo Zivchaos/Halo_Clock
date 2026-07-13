@@ -20,9 +20,9 @@ namespace
         values.dayStartHour %= 24;
         values.hourWidth = values.hourWidth == 5 ? 5 : (values.hourWidth == 1 ? 1 : 3);
         values.ledOffset %= 60;
-        if (static_cast<uint8_t>(values.displayMode) >= static_cast<uint8_t>(DisplayMode::Count))
+        if (!DisplayModes::isValid(static_cast<uint8_t>(values.displayMode)))
         {
-            values.displayMode = DisplayMode::Progress;
+            values.displayMode = DisplayMode::CLASSIC;
         }
         if (static_cast<uint8_t>(values.theme) >= static_cast<uint8_t>(ThemeId::Count))
         {
