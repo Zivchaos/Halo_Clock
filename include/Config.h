@@ -12,6 +12,12 @@ namespace Config
     constexpr bool ENABLE_OLED = true;
     constexpr bool ENABLE_LED_RING = true;
 
+    // LED ring calibration. Logical position 0 is 12 o'clock; positions then
+    // advance around the clock face in the selected direction.
+    constexpr uint8_t LED_ZERO_OFFSET = 0;
+    constexpr bool LED_CLOCKWISE = true;
+    constexpr bool ENABLE_LED_CALIBRATION_TEST = false;
+
     constexpr const char* WIFI_PORTAL_NAME = "HALO Clock Setup";
     constexpr const char* WIFI_PORTAL_PASSWORD = "REDACTED";
     constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 300;

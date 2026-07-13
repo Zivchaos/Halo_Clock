@@ -3,11 +3,35 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 
+#include "Config.h"
 #include "Hardware.h"
 
 namespace
 {
     Adafruit_NeoPixel strip(Hardware::LED_COUNT, Hardware::LED_PIN, NEO_GRB + NEO_KHZ800);
+
+    static_assert(Config::LED_ZERO_OFFSET < Hardware::LED_COUNT, "LED_ZERO_OFFSET must select an existing LED");
+
+    uint8_t logicalToPhysicalIndex(int16_t logicalIndex)
+    {
+        int16_t normalized = logicalIndex % Hardware::LED_COUNT;
+        if (normalized < 0)
+        {
+            normalized += Hardware::LED_COUNT;
+        }
+
+        if (!Config::LED_CLOCKWISE)
+        {
+            normalized = (Hardware::LED_COUNT - normalized) % Hardware::LED_COUNT;
+        }
+
+        return (Config::LED_ZERO_OFFSET + normalized) % Hardware::LED_COUNT;
+    }
+
+    void setLogicalPixel(int16_t logicalIndex, uint32_t color)
+    {
+        strip.setPixelColor(logicalToPhysicalIndex(logicalIndex), color);
+    }
 }
 
 void LedRing::begin()
@@ -39,25 +63,43 @@ void LedRing::bootAnimation()
     strip.show();
 }
 
+void LedRing::showCalibrationTest()
+{
+    strip.clear();
+    strip.setBrightness(Hardware::LED_BRIGHTNESS);
+
+    setLogicalPixel(0, strip.Color(255, 255, 255));
+    setLogicalPixel(15, strip.Color(255, 0, 0));
+    setLogicalPixel(30, strip.Color(0, 255, 0));
+    setLogicalPixel(45, strip.Color(0, 0, 255));
+    strip.show();
+
+    Serial.println("[CAL] LED ring calibration test enabled");
+    Serial.printf("[CAL] logical  0 (12 o'clock, white) -> physical %u\n", logicalToPhysicalIndex(0));
+    Serial.printf("[CAL] logical 15 ( 3 o'clock, red)   -> physical %u\n", logicalToPhysicalIndex(15));
+    Serial.printf("[CAL] logical 30 ( 6 o'clock, green) -> physical %u\n", logicalToPhysicalIndex(30));
+    Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\n", logicalToPhysicalIndex(45));
+}
+
 void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second)
 {
     strip.clear();
 
     for (uint8_t tick = 0; tick < Hardware::LED_COUNT; tick += 5)
     {
-        strip.setPixelColor(tick, 18, 18, 18);
+        setLogicalPixel(tick, strip.Color(18, 18, 18));
     }
 
     for (uint8_t index = 0; index < minute; ++index)
     {
-        strip.setPixelColor(index, 80, 80, 0);
+        setLogicalPixel(index, strip.Color(80, 80, 0));
     }
 
     const uint8_t hourPosition = ((hour % 12) * 5 + minute / 12) % Hardware::LED_COUNT;
-    strip.setPixelColor((hourPosition + Hardware::LED_COUNT - 1) % Hardware::LED_COUNT, 80, 25, 0);
-    strip.setPixelColor(hourPosition, 255, 80, 0);
-    strip.setPixelColor((hourPosition + 1) % Hardware::LED_COUNT, 80, 25, 0);
+    setLogicalPixel(hourPosition - 1, strip.Color(80, 25, 0));
+    setLogicalPixel(hourPosition, strip.Color(255, 80, 0));
+    setLogicalPixel(hourPosition + 1, strip.Color(80, 25, 0));
 
-    strip.setPixelColor(second, 0, 120, 255);
+    setLogicalPixel(second, strip.Color(0, 120, 255));
     strip.show();
 }
