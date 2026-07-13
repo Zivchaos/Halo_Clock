@@ -56,6 +56,17 @@ platformio run --project-conf platformIO.ini --target upload
 platformio device monitor --baud 115200
 ```
 
+### ArduinoOTA updates
+
+After Wi-Fi connects, the clock advertises as `halo-clock.local`. OTA password
+authentication is intentionally disabled for now, so network firmware updates
+must only be used on a trusted local network. USB/serial upload remains the
+default and is still supported.
+
+```powershell
+platformio run -e esp32dev_ota --target upload --upload-port halo-clock.local
+```
+
 The dashboard is embedded in the firmware; no LittleFS upload is required.
 
 ## First-time setup

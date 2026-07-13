@@ -119,6 +119,21 @@ void LedRing::showCalibrationTest()
     Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\r\n", logicalToPhysicalIndex(45));
 }
 
+void LedRing::showOtaProgress(uint8_t percent)
+{
+    const uint8_t boundedPercent = min(percent, static_cast<uint8_t>(100));
+    const uint8_t litPixels = static_cast<uint8_t>(
+        (static_cast<uint16_t>(boundedPercent) * Hardware::LED_COUNT + 99) / 100);
+
+    strip.clear();
+    strip.setBrightness(Config::OTA_LED_BRIGHTNESS);
+    for (uint8_t index = 0; index < litPixels; ++index)
+    {
+        setLogicalPixel(index, strip.Color(0, 80, 255));
+    }
+    strip.show();
+}
+
 void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second, DisplayMode mode)
 {
     strip.clear();

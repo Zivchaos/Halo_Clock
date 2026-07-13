@@ -25,6 +25,12 @@ namespace Config
     constexpr uint8_t AUTO_NIGHT_END_HOUR = 6;
     constexpr uint8_t AUTO_NIGHT_END_MINUTE = 0;
 
+    // OTA is intentionally unauthenticated and must only be used on a trusted local network.
+    constexpr const char* OTA_HOSTNAME = "halo-clock";
+    constexpr uint8_t OTA_LED_BRIGHTNESS = 40;
+    constexpr uint32_t OTA_READY_NOTICE_MS = 1500;
+    constexpr uint32_t OTA_RESULT_NOTICE_MS = 3000;
+
     constexpr const char* SETTINGS_NAMESPACE = "halo-clock";
     constexpr const char* SETTINGS_BRIGHTNESS_KEY = "brightness";
     constexpr const char* SETTINGS_DISPLAY_MODE_KEY = "displayMode";
