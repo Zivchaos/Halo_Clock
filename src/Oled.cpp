@@ -42,6 +42,7 @@ void Oled::splash()
 void Oled::status(const char* line1, const char* line2)
 {
     oled.clearBuffer();
+    oled.setContrast(255);
     oled.setFont(u8g2_font_6x12_tf);
     oled.drawStr(0, 20, line1);
     oled.drawStr(0, 40, line2);

@@ -8,7 +8,7 @@ public:
 
     static void begin(DisplayMode mode);
 
-    static void update();
+    static void update(bool renderEnabled = true);
 
     static void setSelectedDisplayMode(DisplayMode mode);
 
