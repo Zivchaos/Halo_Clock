@@ -12,5 +12,6 @@ namespace Hardware
     constexpr uint8_t OLED_SCL = 22;
     constexpr uint8_t OLED_ADDRESS = 0x3C;
 
-    constexpr uint8_t BUTTON_PIN = 0;
+    // Button connects between GPIO27 and GND. INPUT_PULLUP is used.
+    constexpr uint8_t BUTTON_PIN = 27;
 }

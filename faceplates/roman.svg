@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <circle cx="150" cy="150" r="145" fill="none" stroke="#000"/>
+  <g font-family="Georgia,serif" font-size="22" text-anchor="middle" dominant-baseline="middle">
+    <text x="150" y="23">XII</text><text x="277" y="150">III</text><text x="150" y="277">VI</text><text x="23" y="150">IX</text>
+  </g>
+  <circle cx="150" cy="150" r="53" fill="none" stroke="#000"/>
+</svg>

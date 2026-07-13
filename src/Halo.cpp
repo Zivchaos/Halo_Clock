@@ -23,7 +23,15 @@ void Halo::begin()
     LedRing::bootAnimation();
     delay(200);
 
-    Clock::begin();
+    if constexpr (Config::ENABLE_LED_CALIBRATION_TEST)
+    {
+        Oled::status("RING CALIBRATION", "0  15  30  45");
+        LedRing::showCalibrationTest();
+    }
+    else
+    {
+        Clock::begin();
+    }
 
     Serial.println();
     Serial.println("========================================");
@@ -41,5 +49,8 @@ void Halo::begin()
 
 void Halo::update()
 {
-    Clock::update();
+    if constexpr (!Config::ENABLE_LED_CALIBRATION_TEST)
+    {
+        Clock::update();
+    }
 }
