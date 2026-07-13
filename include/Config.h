@@ -12,6 +12,17 @@ namespace Config
     constexpr bool ENABLE_OLED = true;
     constexpr bool ENABLE_LED_RING = true;
 
+    constexpr uint8_t LED_BRIGHTNESS_LEVELS[] = {10, 25, 40, 80};
+    constexpr size_t LED_BRIGHTNESS_LEVEL_COUNT =
+        sizeof(LED_BRIGHTNESS_LEVELS) / sizeof(LED_BRIGHTNESS_LEVELS[0]);
+    constexpr uint8_t NIGHT_LED_BRIGHTNESS = 3;
+    constexpr uint8_t NIGHT_OLED_CONTRAST = 32;
+    constexpr uint32_t MODE_NOTICE_DURATION_MS = 1000;
+
+    constexpr const char* SETTINGS_NAMESPACE = "halo-clock";
+    constexpr const char* SETTINGS_BRIGHTNESS_KEY = "brightness";
+    constexpr const char* SETTINGS_DISPLAY_MODE_KEY = "displayMode";
+
     // LED ring calibration. Logical position 0 is 12 o'clock; positions then
     // advance around the clock face in the selected direction.
     constexpr uint8_t LED_ZERO_OFFSET = 0;

@@ -4,6 +4,7 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 
+#include "Config.h"
 #include "Hardware.h"
 
 namespace
@@ -47,17 +48,46 @@ void Oled::status(const char* line1, const char* line2)
     oled.sendBuffer();
 }
 
-void Oled::time(const tm& localTime)
+void Oled::time(const tm& localTime, DisplayMode mode)
 {
+    char shortTimeText[6];
     char timeText[9];
     char dateText[20];
+    strftime(shortTimeText, sizeof(shortTimeText), "%H:%M", &localTime);
     strftime(timeText, sizeof(timeText), "%H:%M:%S", &localTime);
     strftime(dateText, sizeof(dateText), "%a %d %b %Y", &localTime);
 
     oled.clearBuffer();
-    oled.setFont(u8g2_font_logisoso20_tn);
-    centerText(timeText, 31);
+    oled.setContrast(mode == DisplayMode::NIGHT ? Config::NIGHT_OLED_CONTRAST : 255);
+
+    if (mode == DisplayMode::CLASSIC)
+    {
+        oled.setFont(u8g2_font_logisoso20_tn);
+        centerText(timeText, 31);
+        oled.setFont(u8g2_font_6x12_tf);
+        centerText(dateText, 53);
+    }
+    else if (mode == DisplayMode::MINIMAL)
+    {
+        oled.setFont(u8g2_font_logisoso32_tn);
+        centerText(shortTimeText, 45);
+    }
+    else
+    {
+        oled.setFont(u8g2_font_logisoso20_tn);
+        centerText(shortTimeText, 38);
+    }
+
+    oled.sendBuffer();
+}
+
+void Oled::displayMode(DisplayMode mode)
+{
+    oled.clearBuffer();
+    oled.setContrast(mode == DisplayMode::NIGHT ? Config::NIGHT_OLED_CONTRAST : 255);
     oled.setFont(u8g2_font_6x12_tf);
-    centerText(dateText, 53);
+    centerText("DISPLAY MODE", 23);
+    oled.setFont(u8g2_font_logisoso20_tf);
+    centerText(DisplayModes::name(mode), 51);
     oled.sendBuffer();
 }

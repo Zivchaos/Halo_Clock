@@ -1,16 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-
-enum class DisplayMode : uint8_t
-{
-    Progress = 0,
-    Analog,
-    Minimal,
-    Ambient,
-    Rainbow,
-    Count
-};
+#include "DisplayMode.h"
 
 enum class ThemeId : uint8_t
 {
@@ -46,19 +37,6 @@ struct RgbColor
     uint8_t green;
     uint8_t blue;
 };
-
-inline const char* displayModeName(DisplayMode mode)
-{
-    switch (mode)
-    {
-        case DisplayMode::Progress: return "Progress";
-        case DisplayMode::Analog: return "Analog";
-        case DisplayMode::Minimal: return "Minimal";
-        case DisplayMode::Ambient: return "Ambient";
-        case DisplayMode::Rainbow: return "Rainbow";
-        default: return "Unknown";
-    }
-}
 
 inline const char* themeName(ThemeId theme)
 {
