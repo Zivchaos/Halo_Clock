@@ -16,7 +16,7 @@ struct HaloSettings
     bool showTicks = true;
     bool showSeconds = true;
     bool weatherEnabled = true;
-    DisplayMode displayMode = DisplayMode::Progress;
+    DisplayMode displayMode = DisplayMode::CLASSIC;
     ThemeId theme = ThemeId::Classic;
     String timezone = "IST-2IDT,M3.4.4/26,M10.5.0";
     float latitude = 32.0853F;
