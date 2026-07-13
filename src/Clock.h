@@ -10,6 +10,6 @@ public:
 
     static void update();
 
-    static void setDisplayMode(DisplayMode mode);
+    static void setSelectedDisplayMode(DisplayMode mode);
 
 };

@@ -19,6 +19,12 @@ namespace Config
     constexpr uint8_t NIGHT_OLED_CONTRAST = 32;
     constexpr uint32_t MODE_NOTICE_DURATION_MS = 1000;
 
+    constexpr bool AUTO_NIGHT_ENABLED = true;
+    constexpr uint8_t AUTO_NIGHT_START_HOUR = 20;
+    constexpr uint8_t AUTO_NIGHT_START_MINUTE = 0;
+    constexpr uint8_t AUTO_NIGHT_END_HOUR = 6;
+    constexpr uint8_t AUTO_NIGHT_END_MINUTE = 0;
+
     constexpr const char* SETTINGS_NAMESPACE = "REDACTED";
     constexpr const char* SETTINGS_BRIGHTNESS_KEY = "brightness";
     constexpr const char* SETTINGS_DISPLAY_MODE_KEY = "displayMode";

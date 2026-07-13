@@ -76,7 +76,7 @@ uint8_t LedRing::cycleBrightness()
     strip.setBrightness(
         activeDisplayMode == DisplayMode::NIGHT ? Config::NIGHT_LED_BRIGHTNESS : selectedBrightness);
     strip.show();
-    Serial.printf("LED BRIGHTNESS %u\n", selectedBrightness);
+    Serial.printf("LED BRIGHTNESS %u\r\n", selectedBrightness);
     return selectedBrightness;
 }
 
@@ -113,10 +113,10 @@ void LedRing::showCalibrationTest()
     strip.show();
 
     Serial.println("[CAL] LED ring calibration test enabled");
-    Serial.printf("[CAL] logical  0 (12 o'clock, white) -> physical %u\n", logicalToPhysicalIndex(0));
-    Serial.printf("[CAL] logical 15 ( 3 o'clock, red)   -> physical %u\n", logicalToPhysicalIndex(15));
-    Serial.printf("[CAL] logical 30 ( 6 o'clock, green) -> physical %u\n", logicalToPhysicalIndex(30));
-    Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\n", logicalToPhysicalIndex(45));
+    Serial.printf("[CAL] logical  0 (12 o'clock, white) -> physical %u\r\n", logicalToPhysicalIndex(0));
+    Serial.printf("[CAL] logical 15 ( 3 o'clock, red)   -> physical %u\r\n", logicalToPhysicalIndex(15));
+    Serial.printf("[CAL] logical 30 ( 6 o'clock, green) -> physical %u\r\n", logicalToPhysicalIndex(30));
+    Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\r\n", logicalToPhysicalIndex(45));
 }
 
 void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second, DisplayMode mode)
