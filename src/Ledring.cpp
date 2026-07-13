@@ -1,14 +1,41 @@
-#include "LedRing.h"
+#include "Ledring.h"
 
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 
+#include "Config.h"
 #include "Hardware.h"
 
-static Adafruit_NeoPixel strip(
-    Hardware::LED_COUNT,
-    Hardware::LED_PIN,
-    NEO_GRB + NEO_KHZ800);
+namespace
+{
+    constexpr uint8_t BRIGHTNESS_LEVELS[] = {10, 25, 40, 80};
+
+    Adafruit_NeoPixel strip(Hardware::LED_COUNT, Hardware::LED_PIN, NEO_GRB + NEO_KHZ800);
+    uint8_t brightnessIndex = 2;
+
+    static_assert(Config::LED_ZERO_OFFSET < Hardware::LED_COUNT, "LED_ZERO_OFFSET must select an existing LED");
+
+    uint8_t logicalToPhysicalIndex(int16_t logicalIndex)
+    {
+        int16_t normalized = logicalIndex % Hardware::LED_COUNT;
+        if (normalized < 0)
+        {
+            normalized += Hardware::LED_COUNT;
+        }
+
+        if (!Config::LED_CLOCKWISE)
+        {
+            normalized = (Hardware::LED_COUNT - normalized) % Hardware::LED_COUNT;
+        }
+
+        return (Config::LED_ZERO_OFFSET + normalized) % Hardware::LED_COUNT;
+    }
+
+    void setLogicalPixel(int16_t logicalIndex, uint32_t color)
+    {
+        strip.setPixelColor(logicalToPhysicalIndex(logicalIndex), color);
+    }
+}
 
 void LedRing::begin()
 {
@@ -18,72 +45,73 @@ void LedRing::begin()
     strip.show();
 }
 
+void LedRing::cycleBrightness()
+{
+    brightnessIndex = (brightnessIndex + 1) % (sizeof(BRIGHTNESS_LEVELS) / sizeof(BRIGHTNESS_LEVELS[0]));
+    const uint8_t brightness = BRIGHTNESS_LEVELS[brightnessIndex];
+    strip.setBrightness(brightness);
+    strip.show();
+    Serial.printf("LED BRIGHTNESS %u\n", brightness);
+}
+
 void LedRing::bootAnimation()
 {
     strip.clear();
-
-    // Blue sweep
-    for (int i = 0; i < Hardware::LED_COUNT; i++)
+    strip.setBrightness(Hardware::LED_BRIGHTNESS);
+    for (uint8_t index = 0; index < Hardware::LED_COUNT; ++index)
     {
-        strip.setPixelColor(i, 0, 0, 255);
-        strip.show();
-        delay(15);
-    }
-
-    delay(150);
-
-    // Fade out
-    for (int b = Hardware::LED_BRIGHTNESS; b >= 0; b--)
-    {
-        strip.setBrightness(b);
+        strip.setPixelColor(index, 0, 0, 180);
         strip.show();
         delay(12);
     }
-
-    strip.clear();
-    for (int i = 0; i < 60; i += 5)
+    for (int16_t brightness = Hardware::LED_BRIGHTNESS; brightness >= 0; --brightness)
     {
-    strip.setPixelColor(i, 30, 30, 30);
+        strip.setBrightness(brightness);
+        strip.show();
+        delay(8);
     }
-strip.show();
+    strip.clear();
+    strip.setBrightness(Hardware::LED_BRIGHTNESS);
+    strip.show();
 }
 
-void LedRing::drawClock(
-    uint8_t hour,
-    uint8_t minute,
-    uint8_t second)
+void LedRing::showCalibrationTest()
+{
+    strip.clear();
+    strip.setBrightness(Hardware::LED_BRIGHTNESS);
+
+    setLogicalPixel(0, strip.Color(255, 255, 255));
+    setLogicalPixel(15, strip.Color(255, 0, 0));
+    setLogicalPixel(30, strip.Color(0, 255, 0));
+    setLogicalPixel(45, strip.Color(0, 0, 255));
+    strip.show();
+
+    Serial.println("[CAL] LED ring calibration test enabled");
+    Serial.printf("[CAL] logical  0 (12 o'clock, white) -> physical %u\n", logicalToPhysicalIndex(0));
+    Serial.printf("[CAL] logical 15 ( 3 o'clock, red)   -> physical %u\n", logicalToPhysicalIndex(15));
+    Serial.printf("[CAL] logical 30 ( 6 o'clock, green) -> physical %u\n", logicalToPhysicalIndex(30));
+    Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\n", logicalToPhysicalIndex(45));
+}
+
+void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second)
 {
     strip.clear();
 
-    //
-    // Hour ticks
-    //
-    for (int i = 0; i < 60; i += 5)
+    for (uint8_t tick = 0; tick < Hardware::LED_COUNT; tick += 5)
     {
-        strip.setPixelColor(i, 25, 25, 25);
+        setLogicalPixel(tick, strip.Color(18, 18, 18));
     }
 
-    //
-    // Minutes
-    //
-    for (int i = 0; i < minute; i++)
+    for (uint8_t index = 0; index < minute; ++index)
     {
-        strip.setPixelColor(i, 80, 80, 0);
+        setLogicalPixel(index, strip.Color(80, 80, 0));
     }
 
-    //
-    // Hours
-    //
-    int h = (hour % 12) * 5;
+    const uint8_t hourPosition = ((hour % 12) * 5 + minute / 12) % Hardware::LED_COUNT;
+    setLogicalPixel(hourPosition - 1, strip.Color(80, 25, 0));
+    setLogicalPixel(hourPosition, strip.Color(255, 80, 0));
+    setLogicalPixel(hourPosition + 1, strip.Color(80, 25, 0));
 
-    strip.setPixelColor((h + 59) % 60, 120, 40, 0);
-    strip.setPixelColor(h,               255, 80, 0);
-    strip.setPixelColor((h + 1) % 60,    120, 40, 0);
-
-    //
-    // Seconds
-    //
-    strip.setPixelColor(second, 0, 120, 255);
-
+    setLogicalPixel(second, strip.Color(0, 120, 255));
     strip.show();
 }
