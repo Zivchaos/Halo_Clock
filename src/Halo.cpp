@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include "Button.h"
 #include "Clock.h"
 #include "Config.h"
 #include "Ledring.h"
@@ -11,6 +12,7 @@
 void Halo::begin()
 {
     Serial.begin(Config::SERIAL_BAUD);
+    Button::begin();
     Oled::begin();
     Oled::splash();
     Oled::status("LED Ring", "PASS");
@@ -49,6 +51,12 @@ void Halo::begin()
 
 void Halo::update()
 {
+    const ButtonEvent buttonEvent = Button::update();
+    if (buttonEvent == ButtonEvent::ShortPress)
+    {
+        LedRing::cycleBrightness();
+    }
+
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
         Clock::update();

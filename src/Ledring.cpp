@@ -8,7 +8,10 @@
 
 namespace
 {
+    constexpr uint8_t BRIGHTNESS_LEVELS[] = {10, 25, 40, 80};
+
     Adafruit_NeoPixel strip(Hardware::LED_COUNT, Hardware::LED_PIN, NEO_GRB + NEO_KHZ800);
+    uint8_t brightnessIndex = 2;
 
     static_assert(Config::LED_ZERO_OFFSET < Hardware::LED_COUNT, "LED_ZERO_OFFSET must select an existing LED");
 
@@ -40,6 +43,15 @@ void LedRing::begin()
     strip.setBrightness(Hardware::LED_BRIGHTNESS);
     strip.clear();
     strip.show();
+}
+
+void LedRing::cycleBrightness()
+{
+    brightnessIndex = (brightnessIndex + 1) % (sizeof(BRIGHTNESS_LEVELS) / sizeof(BRIGHTNESS_LEVELS[0]));
+    const uint8_t brightness = BRIGHTNESS_LEVELS[brightnessIndex];
+    strip.setBrightness(brightness);
+    strip.show();
+    Serial.printf("LED BRIGHTNESS %u\n", brightness);
 }
 
 void LedRing::bootAnimation()

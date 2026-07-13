@@ -9,4 +9,5 @@ public:
     static void bootAnimation();
     static void showCalibrationTest();
     static void drawClock(uint8_t hour, uint8_t minute, uint8_t second);
+    static void cycleBrightness();
 };

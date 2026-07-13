@@ -4,9 +4,7 @@ enum class ButtonEvent
 {
     None,
     ShortPress,
-    DoublePress,
-    LongPress,
-    VeryLongPress
+    LongPress
 };
 
 class Button

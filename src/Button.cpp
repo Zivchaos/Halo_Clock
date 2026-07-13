@@ -7,16 +7,13 @@
 namespace
 {
     constexpr uint32_t DEBOUNCE_MS = 35;
-    constexpr uint32_t DOUBLE_PRESS_MS = 350;
     constexpr uint32_t LONG_PRESS_MS = 1200;
-    constexpr uint32_t VERY_LONG_PRESS_MS = 5000;
 
     bool stableState = HIGH;
     bool lastReading = HIGH;
     uint32_t readingChangedAt = 0;
     uint32_t pressedAt = 0;
-    uint32_t releasedAt = 0;
-    uint8_t clickCount = 0;
+    bool longPressReported = false;
 }
 
 void Button::begin()
@@ -41,30 +38,25 @@ ButtonEvent Button::update()
         if (stableState == LOW)
         {
             pressedAt = now;
+            longPressReported = false;
+            Serial.println("BUTTON PRESSED");
         }
         else
         {
-            const uint32_t held = now - pressedAt;
-            if (held >= VERY_LONG_PRESS_MS)
+            Serial.println("BUTTON RELEASED");
+            if (!longPressReported)
             {
-                clickCount = 0;
-                return ButtonEvent::VeryLongPress;
+                Serial.println("SHORT PRESS");
+                return ButtonEvent::ShortPress;
             }
-            if (held >= LONG_PRESS_MS)
-            {
-                clickCount = 0;
-                return ButtonEvent::LongPress;
-            }
-            ++clickCount;
-            releasedAt = now;
         }
     }
 
-    if (clickCount > 0 && now - releasedAt > DOUBLE_PRESS_MS)
+    if (stableState == LOW && !longPressReported && now - pressedAt >= LONG_PRESS_MS)
     {
-        const ButtonEvent event = clickCount >= 2 ? ButtonEvent::DoublePress : ButtonEvent::ShortPress;
-        clickCount = 0;
-        return event;
+        longPressReported = true;
+        Serial.println("LONG PRESS");
+        return ButtonEvent::LongPress;
     }
 
     return ButtonEvent::None;
