@@ -16,7 +16,7 @@ namespace Config
     // advance around the clock face in the selected direction.
     constexpr uint8_t LED_ZERO_OFFSET = 0;
     constexpr bool LED_CLOCKWISE = true;
-    constexpr bool ENABLE_LED_CALIBRATION_TEST = false;
+    constexpr bool ENABLE_RING_CALIBRATION = false;
 
     constexpr const char* WIFI_PORTAL_NAME = "HALO Clock Setup";
     constexpr const char* WIFI_PORTAL_PASSWORD = "halo-clock";
