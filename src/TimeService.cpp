@@ -25,7 +25,7 @@ namespace
             Config::NTP_SERVER_PRIMARY,
             Config::NTP_SERVER_SECONDARY);
         ntpConfigured = true;
-        Serial.printf("[TIME] NTP configured for Israel; IP: %s\n", WiFi.localIP().toString().c_str());
+        Serial.printf("[TIME] NTP configured for Israel; IP: %s\r\n", WiFi.localIP().toString().c_str());
     }
 }
 
@@ -66,7 +66,7 @@ void TimeService::update()
     {
         if (status == WL_CONNECTED)
         {
-            Serial.printf("[WIFI] Connected: %s\n", WiFi.localIP().toString().c_str());
+            Serial.printf("[WIFI] Connected: %s\r\n", WiFi.localIP().toString().c_str());
         }
         else if (previousWifiStatus == WL_CONNECTED)
         {

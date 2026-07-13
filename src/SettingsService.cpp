@@ -89,7 +89,7 @@ void SettingsService::saveBrightness(uint8_t level)
     if (preferences.putUChar(Config::SETTINGS_BRIGHTNESS_KEY, level) == sizeof(level))
     {
         selectedBrightness = level;
-        Serial.printf("BRIGHTNESS SAVED: %u\n", level);
+        Serial.printf("BRIGHTNESS SAVED: %u\r\n", level);
     }
 }
 

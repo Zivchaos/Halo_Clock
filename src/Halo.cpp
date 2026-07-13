@@ -12,11 +12,11 @@
 
 namespace
 {
-    DisplayMode activeDisplayMode = DisplayMode::CLASSIC;
+    DisplayMode selectedDisplayMode = DisplayMode::CLASSIC;
 
     void logDisplayMode()
     {
-        Serial.printf("DISPLAY MODE: %s\n", DisplayModes::name(activeDisplayMode));
+        Serial.printf("DISPLAY MODE: %s\r\n", DisplayModes::name(selectedDisplayMode));
     }
 }
 
@@ -36,7 +36,7 @@ void Halo::begin()
     LedRing::begin(SettingsService::brightness());
     LedRing::bootAnimation();
     delay(200);
-    activeDisplayMode = SettingsService::displayMode();
+    selectedDisplayMode = SettingsService::displayMode();
 
     if constexpr (Config::ENABLE_RING_CALIBRATION)
     {
@@ -45,8 +45,7 @@ void Halo::begin()
     }
     else
     {
-        LedRing::setDisplayMode(activeDisplayMode);
-        Clock::begin(activeDisplayMode);
+        Clock::begin(selectedDisplayMode);
     }
     logDisplayMode();
 
@@ -73,14 +72,13 @@ void Halo::update()
     }
     else if (buttonEvent == ButtonEvent::LongPress)
     {
-        activeDisplayMode = DisplayModes::next(activeDisplayMode);
-        SettingsService::saveDisplayMode(activeDisplayMode);
+        selectedDisplayMode = DisplayModes::next(selectedDisplayMode);
+        SettingsService::saveDisplayMode(selectedDisplayMode);
         logDisplayMode();
 
         if constexpr (!Config::ENABLE_RING_CALIBRATION)
         {
-            LedRing::setDisplayMode(activeDisplayMode);
-            Clock::setDisplayMode(activeDisplayMode);
+            Clock::setSelectedDisplayMode(selectedDisplayMode);
         }
     }
 
