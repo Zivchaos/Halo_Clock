@@ -13,7 +13,8 @@ namespace Config
     constexpr bool ENABLE_LED_RING = true;
 
     constexpr const char* WIFI_PORTAL_NAME = "HALO Clock Setup";
-    constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 180;
+    constexpr const char* WIFI_PORTAL_PASSWORD = "REDACTED";
+    constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 300;
 
     constexpr const char* NTP_SERVER_PRIMARY = "pool.ntp.org";
     constexpr const char* NTP_SERVER_SECONDARY = "time.nist.gov";
