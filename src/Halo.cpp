@@ -7,6 +7,7 @@
 #include "Config.h"
 #include "Ledring.h"
 #include "Oled.h"
+#include "OtaService.h"
 #include "SettingsService.h"
 #include "Version.h"
 
@@ -46,6 +47,7 @@ void Halo::begin()
     else
     {
         Clock::begin(selectedDisplayMode);
+        OtaService::begin();
     }
     logDisplayMode();
 
@@ -65,12 +67,13 @@ void Halo::begin()
 
 void Halo::update()
 {
+    OtaService::update();
     const ButtonEvent buttonEvent = Button::update();
-    if (buttonEvent == ButtonEvent::ShortPress)
+    if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::ShortPress)
     {
         SettingsService::saveBrightness(LedRing::cycleBrightness());
     }
-    else if (buttonEvent == ButtonEvent::LongPress)
+    else if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::LongPress)
     {
         selectedDisplayMode = DisplayModes::next(selectedDisplayMode);
         SettingsService::saveDisplayMode(selectedDisplayMode);
@@ -84,6 +87,6 @@ void Halo::update()
 
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
-        Clock::update();
+        Clock::update(!OtaService::isDisplayReserved());
     }
 }

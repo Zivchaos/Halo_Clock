@@ -15,6 +15,8 @@ namespace
     DisplayMode activeDisplayMode = DisplayMode::CLASSIC;
     uint32_t modeNoticeStartedAt = 0;
     bool modeNoticeVisible = false;
+    bool renderRefreshPending = false;
+    AutoNightEvent pendingAutoNightNotice = AutoNightEvent::NONE;
 
     void startNotice()
     {
@@ -75,7 +77,7 @@ void Clock::setSelectedDisplayMode(DisplayMode mode)
     startNotice();
 }
 
-void Clock::update()
+void Clock::update(bool renderEnabled)
 {
     TimeService::update();
 
@@ -85,8 +87,18 @@ void Clock::update()
 
     if (autoNightEvent != AutoNightEvent::NONE)
     {
-        applyEffectiveMode(AutoNightService::effectiveMode(selectedDisplayMode));
-        showAutomaticNotice(autoNightEvent);
+        const DisplayMode nextEffectiveMode = AutoNightService::effectiveMode(selectedDisplayMode);
+        if (renderEnabled)
+        {
+            applyEffectiveMode(nextEffectiveMode);
+            showAutomaticNotice(autoNightEvent);
+        }
+        else
+        {
+            activeDisplayMode = nextEffectiveMode;
+            renderRefreshPending = true;
+            pendingAutoNightNotice = autoNightEvent;
+        }
     }
 
     bool modeNoticeExpired = false;
@@ -94,6 +106,34 @@ void Clock::update()
     {
         modeNoticeVisible = false;
         modeNoticeExpired = true;
+    }
+
+    if (!renderEnabled)
+    {
+        renderRefreshPending = true;
+        return;
+    }
+
+    if (renderRefreshPending)
+    {
+        LedRing::setDisplayMode(activeDisplayMode);
+        if (TimeService::isSynchronized())
+        {
+            const tm& localTime = TimeService::localTime();
+            LedRing::drawClock(
+                localTime.tm_hour,
+                localTime.tm_min,
+                localTime.tm_sec,
+                activeDisplayMode);
+            Oled::time(localTime, activeDisplayMode);
+        }
+        if (pendingAutoNightNotice != AutoNightEvent::NONE)
+        {
+            showAutomaticNotice(pendingAutoNightNotice);
+            pendingAutoNightNotice = AutoNightEvent::NONE;
+        }
+        renderRefreshPending = false;
+        return;
     }
 
     if (TimeService::hasChanged())
