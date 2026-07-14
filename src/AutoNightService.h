@@ -58,6 +58,9 @@ class AutoNightService
 public:
     static void begin();
     static AutoNightEvent update(bool timeValid, const tm& localTime);
+    static void settingsChanged();
     static bool activateManualOverride();
     static DisplayMode effectiveMode(DisplayMode selectedMode);
+    static bool isActive();
+    static bool isManualOverride();
 };

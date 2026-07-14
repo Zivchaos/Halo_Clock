@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "Config.h"
+#include "SettingsService.h"
 
 namespace
 {
@@ -10,6 +11,7 @@ namespace
     bool scheduledNight = false;
     bool manualOverride = false;
     bool waitingLogged = false;
+    bool configurationChanged = false;
 
     static_assert(Config::AUTO_NIGHT_START_HOUR < 24, "AUTO_NIGHT_START_HOUR must be 0-23");
     static_assert(Config::AUTO_NIGHT_END_HOUR < 24, "AUTO_NIGHT_END_HOUR must be 0-23");
@@ -35,13 +37,14 @@ namespace
 
     bool isScheduledNight(const tm& localTime)
     {
+        const AutoNightSettings& settings = SettingsService::autoNight();
         return AutoNightSchedule::isActive(
             localTime.tm_hour,
             localTime.tm_min,
-            Config::AUTO_NIGHT_START_HOUR,
-            Config::AUTO_NIGHT_START_MINUTE,
-            Config::AUTO_NIGHT_END_HOUR,
-            Config::AUTO_NIGHT_END_MINUTE);
+            settings.startHour,
+            settings.startMinute,
+            settings.endHour,
+            settings.endMinute);
     }
 
     void logWaitingForTime()
@@ -56,12 +59,13 @@ namespace
 
 void AutoNightService::begin()
 {
-    scheduleKnown = !Config::AUTO_NIGHT_ENABLED;
+    scheduleKnown = !SettingsService::autoNight().enabled;
     scheduledNight = false;
     manualOverride = false;
     waitingLogged = false;
+    configurationChanged = false;
 
-    if (Config::AUTO_NIGHT_ENABLED)
+    if (SettingsService::autoNight().enabled)
     {
         logWaitingForTime();
     }
@@ -73,9 +77,21 @@ void AutoNightService::begin()
 
 AutoNightEvent AutoNightService::update(bool timeValid, const tm& localTime)
 {
-    if (!Config::AUTO_NIGHT_ENABLED)
+    const bool enabled = SettingsService::autoNight().enabled;
+    if (!enabled)
     {
-        return AutoNightEvent::NONE;
+        const bool wasScheduledNight = scheduleKnown && scheduledNight;
+        const bool shouldLog = configurationChanged || !scheduleKnown || wasScheduledNight;
+        scheduleKnown = true;
+        scheduledNight = false;
+        manualOverride = false;
+        waitingLogged = false;
+        configurationChanged = false;
+        if (shouldLog)
+        {
+            Serial.println("AUTO NIGHT: INACTIVE");
+        }
+        return wasScheduledNight ? AutoNightEvent::DEACTIVATED : AutoNightEvent::NONE;
     }
 
     if (!timeValid)
@@ -84,6 +100,7 @@ AutoNightEvent AutoNightService::update(bool timeValid, const tm& localTime)
         scheduleKnown = false;
         scheduledNight = false;
         manualOverride = false;
+        configurationChanged = false;
         logWaitingForTime();
         return wasAutomaticallyActive ? AutoNightEvent::TIME_INVALID : AutoNightEvent::NONE;
     }
@@ -91,22 +108,37 @@ AutoNightEvent AutoNightService::update(bool timeValid, const tm& localTime)
     waitingLogged = false;
     const bool nextScheduledNight = isScheduledNight(localTime);
 
-    if (!scheduleKnown || nextScheduledNight != scheduledNight)
+    if (!scheduleKnown || nextScheduledNight != scheduledNight || configurationChanged)
     {
+        const bool previousScheduledNight = scheduleKnown && scheduledNight;
+        const bool wasManualOverride = manualOverride;
         scheduleKnown = true;
         scheduledNight = nextScheduledNight;
         manualOverride = false;
+        configurationChanged = false;
 
         Serial.println(scheduledNight ? "AUTO NIGHT: ACTIVE" : "AUTO NIGHT: INACTIVE");
-        return scheduledNight ? AutoNightEvent::ACTIVATED : AutoNightEvent::DEACTIVATED;
+        if (scheduledNight != previousScheduledNight)
+        {
+            return scheduledNight ? AutoNightEvent::ACTIVATED : AutoNightEvent::DEACTIVATED;
+        }
+        if (scheduledNight && wasManualOverride)
+        {
+            return AutoNightEvent::ACTIVATED;
+        }
     }
 
     return AutoNightEvent::NONE;
 }
 
+void AutoNightService::settingsChanged()
+{
+    configurationChanged = true;
+}
+
 bool AutoNightService::activateManualOverride()
 {
-    if (!Config::AUTO_NIGHT_ENABLED || !scheduleKnown || !scheduledNight)
+    if (!SettingsService::autoNight().enabled || !scheduleKnown || !scheduledNight)
     {
         return false;
     }
@@ -123,10 +155,20 @@ bool AutoNightService::activateManualOverride()
 
 DisplayMode AutoNightService::effectiveMode(DisplayMode selectedMode)
 {
-    if (Config::AUTO_NIGHT_ENABLED && scheduleKnown && scheduledNight && !manualOverride)
+    if (SettingsService::autoNight().enabled && scheduleKnown && scheduledNight && !manualOverride)
     {
         return DisplayMode::NIGHT;
     }
 
     return selectedMode;
+}
+
+bool AutoNightService::isActive()
+{
+    return SettingsService::autoNight().enabled && scheduleKnown && scheduledNight;
+}
+
+bool AutoNightService::isManualOverride()
+{
+    return manualOverride;
 }
