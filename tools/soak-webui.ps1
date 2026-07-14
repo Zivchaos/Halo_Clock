@@ -60,6 +60,9 @@ while ((Get-Date) -lt $deadline) {
         brightness = if ($status) {$status.brightness} else {$null}; autoNightEnabled = if ($status) {$status.autoNightEnabled} else {$null}
         autoNightActive = if ($status) {$status.autoNightActive} else {$null}; otaReady = if ($status) {$status.otaReady} else {$null}
         otaUpdating = if ($status) {$status.otaUpdating} else {$null}; error = $errorText
+        weatherAvailable = if ($status) {$status.weatherAvailable} else {$null}; weatherStale = if ($status) {$status.weatherStale} else {$null}
+        temperature = if ($status) {$status.temperature} else {$null}; weatherLastUpdate = if ($status) {$status.weatherLastUpdate} else {$null}
+        weatherError = if ($status) {$status.weatherError} else {$null}
     })
 
     if ((Get-Date) -ge $nextPageCheck) {

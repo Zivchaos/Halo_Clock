@@ -69,6 +69,14 @@ platformio run -e esp32dev_ota --target upload --upload-port halo-clock.local
 
 The dashboard is embedded in the firmware; no LittleFS upload is required.
 
+### Weather location
+
+Current conditions come from the keyless Open-Meteo API over HTTPS. Configure
+`WEATHER_LATITUDE` and `WEATHER_LONGITUDE` in `include/Config.h` before building;
+the checked-in defaults point to Tel Aviv, Israel. Units, the 15-minute refresh
+interval, retry timing, request timeout, and stale-data age are centralized in
+the same file. Weather data is cached in RAM only and is never written to flash.
+
 ## First-time setup
 
 When HALO has no saved Wi-Fi network, it creates:

@@ -3,6 +3,7 @@
 #include <time.h>
 
 #include "DisplayMode.h"
+#include "WeatherService.h"
 
 class Oled
 {
@@ -13,4 +14,5 @@ public:
     static void time(const tm& localTime, DisplayMode mode);
     static void displayMode(DisplayMode mode);
     static void notice(const char* message, DisplayMode mode);
+    static void weather(const WeatherData& weather, DisplayMode mode);
 };
