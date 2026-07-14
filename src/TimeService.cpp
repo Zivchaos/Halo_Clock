@@ -3,8 +3,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
+#include <esp_sntp.h>
 
 #include "Config.h"
+#include "DiagnosticsService.h"
 #include "Oled.h"
 
 namespace
@@ -20,6 +22,9 @@ namespace
 
     void configureNtp()
     {
+        sntp_set_time_sync_notification_cb([](timeval*) {
+            DiagnosticsService::recordTimeSync();
+        });
         configTzTime(
             Config::ISRAEL_TIMEZONE,
             Config::NTP_SERVER_PRIMARY,

@@ -8,6 +8,7 @@
 #include <freertos/task.h>
 
 #include "Config.h"
+#include "DiagnosticsService.h"
 #include "WeatherProvider.h"
 
 namespace
@@ -50,6 +51,7 @@ namespace
 
     void finishFailure(const char* reason)
     {
+        DiagnosticsService::recordWeatherFailure(reason);
         const uint32_t now = millis();
         bool usingCache = false;
         lockState();
@@ -68,6 +70,7 @@ namespace
 
     void finishSuccess(const WeatherReading& reading)
     {
+        DiagnosticsService::recordWeatherSuccess();
         const uint32_t now = millis();
         const time_t epoch = time(nullptr);
         lockState();
@@ -187,6 +190,7 @@ namespace
         unlockState();
 
         Serial.println("WEATHER: REQUEST");
+        DiagnosticsService::recordWeatherRequest();
         if (xTaskCreate(
                 weatherTask,
                 "halo-weather",
