@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://halo-clock.local",
+    [string]$BaseUrl = "http://halo-cst.local",
     [int]$Minutes = 30,
     [int]$IntervalSeconds = 3
 )

@@ -8,6 +8,7 @@
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "Oled.h"
+#include "Version.h"
 
 namespace
 {
@@ -26,11 +27,11 @@ namespace
             DiagnosticsService::recordTimeSync();
         });
         configTzTime(
-            Config::ISRAEL_TIMEZONE,
+            Config::LOCAL_TIMEZONE,
             Config::NTP_SERVER_PRIMARY,
             Config::NTP_SERVER_SECONDARY);
         ntpConfigured = true;
-        Serial.printf("[TIME] NTP configured for Israel; IP: %s\r\n", WiFi.localIP().toString().c_str());
+        Serial.printf("[TIME] NTP configured for local timezone; IP: %s\r\n", WiFi.localIP().toString().c_str());
     }
 }
 
@@ -42,16 +43,17 @@ void TimeService::begin()
     }
 
     WiFi.mode(WIFI_STA);
+    WiFi.setHostname(Product::HOSTNAME);
     WiFi.setAutoReconnect(true);
     wifiManager.setConfigPortalBlocking(false);
     wifiManager.setConfigPortalTimeout(Config::WIFI_PORTAL_TIMEOUT_SECONDS);
     wifiManager.setConnectTimeout(15);
     wifiManager.setAPCallback([](WiFiManager*) {
-        Oled::status("WiFi Setup", Config::WIFI_PORTAL_NAME);
+        Oled::status("WiFi Setup", Product::SETUP_AP_NAME);
         Serial.println("[WIFI] Configuration portal started at 192.168.4.1");
     });
-    Oled::status("Connecting WiFi", Config::WIFI_PORTAL_NAME);
-    wifiManager.autoConnect(Config::WIFI_PORTAL_NAME, Config::WIFI_PORTAL_PASSWORD);
+    Oled::status("Connecting WiFi", Product::SETUP_AP_NAME);
+    wifiManager.autoConnect(Product::SETUP_AP_NAME);
     previousWifiStatus = WiFi.status();
 }
 
@@ -101,7 +103,7 @@ void TimeService::update()
     if (!synchronized)
     {
         synchronized = true;
-        Serial.println("[TIME] Israel local time synchronized");
+        Serial.println("[TIME] Local time synchronized");
     }
 }
 

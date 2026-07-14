@@ -14,5 +14,5 @@ jobs:
           python-version: "3.12"
       - name: Install PlatformIO
         run: pip install platformio
-      - name: Build HALO firmware
+      - name: Build HALO CST firmware
         run: platformio run --project-conf platformIO.ini

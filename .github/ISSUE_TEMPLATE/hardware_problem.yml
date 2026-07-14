@@ -1,0 +1,45 @@
+name: Hardware problem
+description: Diagnose wiring, power, OLED, LED, button, or ESP32 behavior
+title: "[Hardware]: "
+labels: [hardware]
+body:
+  - type: textarea
+    id: components
+    attributes:
+      label: Exact components
+      description: Board model, OLED controller/address, LED model/count, button, level shifter, and supply.
+    validations:
+      required: true
+  - type: textarea
+    id: wiring
+    attributes:
+      label: Wiring
+      description: Describe connections and any changes from docs/WIRING.md. Do not work on live wiring.
+    validations:
+      required: true
+  - type: input
+    id: supply
+    attributes:
+      label: Power supply
+      placeholder: Regulated 5 V, current rating, injection arrangement
+    validations:
+      required: true
+  - type: textarea
+    id: symptom
+    attributes:
+      label: Symptom and observations
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Safe tests already performed
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checklist
+      options:
+        - label: Grounds are common and polarity has been checked with power removed.
+          required: true
+        - label: I will not reconnect or alter wiring while powered.
+          required: true

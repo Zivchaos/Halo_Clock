@@ -19,8 +19,8 @@ struct HaloSettings
     DisplayMode displayMode = DisplayMode::CLASSIC;
     ThemeId theme = ThemeId::Classic;
     String timezone = "IST-2IDT,M3.4.4/26,M10.5.0";
-    float latitude = 32.0853F;
-    float longitude = 34.7818F;
+    float latitude = 51.4769F;
+    float longitude = 0.0005F;
 };
 
 class Settings

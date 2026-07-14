@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://halo-clock.local"
+    [string]$BaseUrl = "http://halo-cst.local"
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,7 +80,7 @@ try {
     $root = Invoke-HaloRequest -Method GET -Path "/"
     Assert-Halo ($root.Status -eq 200) "GET / returns HTTP 200"
     Assert-Halo ($root.ContentType -match "text/html") "GET / returns HTML"
-    Assert-Halo ($root.Body -match "HALO Clock") "main page identifies HALO Clock"
+    Assert-Halo ($root.Body -match "HALO CST") "main page identifies HALO CST"
     Assert-Halo ($root.Body -match 'id="diagnosticsPanel"') "main page includes diagnostics panel"
     Assert-Halo ($root.Body -match "Copy diagnostics") "main page includes diagnostics copy control"
     Assert-Halo ($root.Body -match "Download diagnostics JSON") "main page includes diagnostics download control"
@@ -126,7 +126,7 @@ try {
     Assert-Halo ($diagnostics.ota.ready -is [bool]) "diagnostics OTA ready state is boolean"
     Assert-Halo ($diagnostics.ota.updating -is [bool]) "diagnostics OTA updating state is boolean"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.ota.runningPartition)) "diagnostics running partition exists"
-    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.version)) "diagnostics firmware version exists"
+    Assert-Halo ([string]$diagnostics.firmware.version -eq "1.0.0-rc1") "diagnostics reports firmware 1.0.0-rc1"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildDate)) "diagnostics build date exists"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildTime)) "diagnostics build time exists"
     Assert-Halo ([bool]$diagnostics.ota.ready -eq [bool]$status.otaReady) "diagnostics OTA ready matches status"
