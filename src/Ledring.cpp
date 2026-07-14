@@ -72,12 +72,24 @@ void LedRing::begin(uint8_t brightness)
 uint8_t LedRing::cycleBrightness()
 {
     brightnessIndex = (brightnessIndex + 1) % Config::LED_BRIGHTNESS_LEVEL_COUNT;
-    selectedBrightness = Config::LED_BRIGHTNESS_LEVELS[brightnessIndex];
+    setBrightness(Config::LED_BRIGHTNESS_LEVELS[brightnessIndex]);
+    Serial.printf("LED BRIGHTNESS %u\r\n", selectedBrightness);
+    return selectedBrightness;
+}
+
+bool LedRing::setBrightness(uint8_t brightness)
+{
+    if (!Config::isSupportedBrightness(brightness))
+    {
+        return false;
+    }
+
+    selectedBrightness = brightness;
+    brightnessIndex = brightnessLevelIndex(brightness);
     strip.setBrightness(
         activeDisplayMode == DisplayMode::NIGHT ? Config::NIGHT_LED_BRIGHTNESS : selectedBrightness);
     strip.show();
-    Serial.printf("LED BRIGHTNESS %u\r\n", selectedBrightness);
-    return selectedBrightness;
+    return true;
 }
 
 void LedRing::bootAnimation()

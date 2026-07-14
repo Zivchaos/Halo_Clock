@@ -125,6 +125,11 @@ bool OtaService::isUpdating()
     return updating;
 }
 
+bool OtaService::isReady()
+{
+    return initialized && WiFi.status() == WL_CONNECTED;
+}
+
 bool OtaService::isDisplayReserved()
 {
     return updating || noticeVisible;
