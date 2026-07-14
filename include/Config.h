@@ -46,6 +46,25 @@ namespace Config
     constexpr uint16_t WEB_PORT = 80;
     constexpr uint32_t WEB_REBOOT_DELAY_MS = 500;
 
+    // Current weather is provided by Open-Meteo without an API key. Change
+    // these WGS84 coordinates to move the weather location.
+    constexpr const char* WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
+    constexpr float WEATHER_LATITUDE = 32.0853F;
+    constexpr float WEATHER_LONGITUDE = 34.7818F;
+    constexpr const char* WEATHER_TEMPERATURE_UNIT = "celsius";
+    constexpr const char* WEATHER_WIND_SPEED_UNIT = "kmh";
+    constexpr uint32_t WEATHER_REFRESH_INTERVAL_MS = 15UL * 60UL * 1000UL;
+    constexpr uint32_t WEATHER_FAILURE_BACKOFF_MS = 2UL * 60UL * 1000UL;
+    constexpr uint32_t WEATHER_STALE_AFTER_MS = 45UL * 60UL * 1000UL;
+    constexpr uint32_t WEATHER_MANUAL_REFRESH_LIMIT_MS = 30UL * 1000UL;
+    constexpr uint32_t WEATHER_STARTUP_DELAY_MS = 5UL * 1000UL;
+    constexpr uint32_t WEATHER_CONNECT_TIMEOUT_MS = 8000;
+    constexpr uint32_t WEATHER_RESPONSE_TIMEOUT_MS = 8000;
+    constexpr size_t WEATHER_MAX_RESPONSE_BYTES = 4096;
+    constexpr uint32_t WEATHER_OLED_DURATION_MS = 5000;
+    constexpr uint32_t WEATHER_TASK_STACK_SIZE = 8192;
+    constexpr bool ENABLE_WEATHER_OLED = true;
+
     constexpr const char* SETTINGS_NAMESPACE = "halo-clock";
     constexpr const char* SETTINGS_BRIGHTNESS_KEY = "brightness";
     constexpr const char* SETTINGS_DISPLAY_MODE_KEY = "displayMode";
