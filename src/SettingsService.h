@@ -4,6 +4,15 @@
 
 #include "DisplayMode.h"
 
+struct AutoNightSettings
+{
+    bool enabled;
+    uint8_t startHour;
+    uint8_t startMinute;
+    uint8_t endHour;
+    uint8_t endMinute;
+};
+
 class SettingsService
 {
 public:
@@ -12,4 +21,6 @@ public:
     static void saveBrightness(uint8_t level);
     static DisplayMode displayMode();
     static void saveDisplayMode(DisplayMode mode);
+    static const AutoNightSettings& autoNight();
+    static bool saveAutoNight(const AutoNightSettings& settings);
 };

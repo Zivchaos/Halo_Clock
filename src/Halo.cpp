@@ -10,14 +10,13 @@
 #include "OtaService.h"
 #include "SettingsService.h"
 #include "Version.h"
+#include "WebService.h"
 
 namespace
 {
-    DisplayMode selectedDisplayMode = DisplayMode::CLASSIC;
-
-    void logDisplayMode()
+    void logDisplayMode(DisplayMode mode)
     {
-        Serial.printf("DISPLAY MODE: %s\r\n", DisplayModes::name(selectedDisplayMode));
+        Serial.printf("DISPLAY MODE: %s\r\n", DisplayModes::name(mode));
     }
 }
 
@@ -37,7 +36,7 @@ void Halo::begin()
     LedRing::begin(SettingsService::brightness());
     LedRing::bootAnimation();
     delay(200);
-    selectedDisplayMode = SettingsService::displayMode();
+    const DisplayMode selectedDisplayMode = SettingsService::displayMode();
 
     if constexpr (Config::ENABLE_RING_CALIBRATION)
     {
@@ -48,8 +47,9 @@ void Halo::begin()
     {
         Clock::begin(selectedDisplayMode);
         OtaService::begin();
+        WebService::begin();
     }
-    logDisplayMode();
+    logDisplayMode(selectedDisplayMode);
 
     Serial.println();
     Serial.println("========================================");
@@ -68,25 +68,45 @@ void Halo::begin()
 void Halo::update()
 {
     OtaService::update();
+    WebService::update();
     const ButtonEvent buttonEvent = Button::update();
     if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::ShortPress)
     {
-        SettingsService::saveBrightness(LedRing::cycleBrightness());
+        setBrightness(LedRing::cycleBrightness());
     }
     else if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::LongPress)
     {
-        selectedDisplayMode = DisplayModes::next(selectedDisplayMode);
-        SettingsService::saveDisplayMode(selectedDisplayMode);
-        logDisplayMode();
-
-        if constexpr (!Config::ENABLE_RING_CALIBRATION)
-        {
-            Clock::setSelectedDisplayMode(selectedDisplayMode);
-        }
+        setDisplayMode(DisplayModes::next(SettingsService::displayMode()));
     }
 
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
         Clock::update(!OtaService::isDisplayReserved());
     }
+}
+
+bool Halo::setBrightness(uint8_t brightness)
+{
+    if (!LedRing::setBrightness(brightness))
+    {
+        return false;
+    }
+    SettingsService::saveBrightness(brightness);
+    return true;
+}
+
+bool Halo::setDisplayMode(DisplayMode mode)
+{
+    if (!DisplayModes::isValid(static_cast<uint8_t>(mode)))
+    {
+        return false;
+    }
+
+    SettingsService::saveDisplayMode(mode);
+    logDisplayMode(mode);
+    if constexpr (!Config::ENABLE_RING_CALIBRATION)
+    {
+        Clock::setSelectedDisplayMode(mode);
+    }
+    return true;
 }
