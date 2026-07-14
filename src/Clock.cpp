@@ -156,3 +156,13 @@ void Clock::update(bool renderEnabled)
         Oled::time(TimeService::localTime(), activeDisplayMode);
     }
 }
+
+DisplayMode Clock::selectedMode()
+{
+    return selectedDisplayMode;
+}
+
+DisplayMode Clock::effectiveMode()
+{
+    return activeDisplayMode;
+}

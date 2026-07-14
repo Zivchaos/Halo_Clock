@@ -8,6 +8,7 @@ public:
     static void begin();
     static void update();
     static bool isUpdating();
+    static bool isReady();
     static bool isDisplayReserved();
     static uint8_t progressPercent();
 };

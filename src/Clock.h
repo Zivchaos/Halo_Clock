@@ -12,4 +12,7 @@ public:
 
     static void setSelectedDisplayMode(DisplayMode mode);
 
+    static DisplayMode selectedMode();
+    static DisplayMode effectiveMode();
+
 };
