@@ -17,6 +17,8 @@ namespace
     bool modeNoticeVisible = false;
     bool renderRefreshPending = false;
     AutoNightEvent pendingAutoNightNotice = AutoNightEvent::NONE;
+    uint32_t weatherViewStartedAt = 0;
+    bool weatherViewVisible = false;
 
     void startNotice()
     {
@@ -37,6 +39,7 @@ namespace
 
     void showAutomaticNotice(AutoNightEvent event)
     {
+        weatherViewVisible = false;
         if (event == AutoNightEvent::ACTIVATED)
         {
             Oled::notice("AUTO NIGHT ON", activeDisplayMode);
@@ -54,6 +57,12 @@ void Clock::begin(DisplayMode mode)
 {
     selectedDisplayMode = mode;
     activeDisplayMode = mode;
+    modeNoticeStartedAt = 0;
+    modeNoticeVisible = false;
+    renderRefreshPending = false;
+    pendingAutoNightNotice = AutoNightEvent::NONE;
+    weatherViewStartedAt = 0;
+    weatherViewVisible = false;
     LedRing::setDisplayMode(mode);
     AutoNightService::begin();
     TimeService::begin();
@@ -61,6 +70,7 @@ void Clock::begin(DisplayMode mode)
 
 void Clock::setSelectedDisplayMode(DisplayMode mode)
 {
+    weatherViewVisible = false;
     selectedDisplayMode = mode;
 
     if (AutoNightService::activateManualOverride())
@@ -75,6 +85,18 @@ void Clock::setSelectedDisplayMode(DisplayMode mode)
     }
 
     startNotice();
+}
+
+void Clock::showWeather(const WeatherData& weather)
+{
+    if (modeNoticeVisible)
+    {
+        return;
+    }
+
+    weatherViewStartedAt = millis();
+    weatherViewVisible = true;
+    Oled::weather(weather, activeDisplayMode);
 }
 
 void Clock::update(bool renderEnabled)
@@ -108,6 +130,14 @@ void Clock::update(bool renderEnabled)
         modeNoticeExpired = true;
     }
 
+    bool weatherViewExpired = false;
+    if (weatherViewVisible &&
+        millis() - weatherViewStartedAt >= Config::WEATHER_OLED_DURATION_MS)
+    {
+        weatherViewVisible = false;
+        weatherViewExpired = true;
+    }
+
     if (!renderEnabled)
     {
         renderRefreshPending = true;
@@ -116,6 +146,7 @@ void Clock::update(bool renderEnabled)
 
     if (renderRefreshPending)
     {
+        weatherViewVisible = false;
         LedRing::setDisplayMode(activeDisplayMode);
         if (TimeService::isSynchronized())
         {
@@ -151,7 +182,12 @@ void Clock::update(bool renderEnabled)
         return;
     }
 
-    if (TimeService::hasChanged() || modeNoticeExpired)
+    if (weatherViewVisible)
+    {
+        return;
+    }
+
+    if (TimeService::hasChanged() || modeNoticeExpired || weatherViewExpired)
     {
         Oled::time(TimeService::localTime(), activeDisplayMode);
     }

@@ -11,6 +11,7 @@
 #include "SettingsService.h"
 #include "Version.h"
 #include "WebService.h"
+#include "WeatherService.h"
 
 namespace
 {
@@ -47,6 +48,7 @@ void Halo::begin()
     {
         Clock::begin(selectedDisplayMode);
         OtaService::begin();
+        WeatherService::begin();
         WebService::begin();
     }
     logDisplayMode(selectedDisplayMode);
@@ -68,7 +70,16 @@ void Halo::begin()
 void Halo::update()
 {
     OtaService::update();
+    WeatherService::update();
     WebService::update();
+    if constexpr (Config::ENABLE_WEATHER_OLED)
+    {
+        if (!OtaService::isDisplayReserved() &&
+            WeatherService::consumeDisplayUpdate())
+        {
+            Clock::showWeather(WeatherService::snapshot());
+        }
+    }
     const ButtonEvent buttonEvent = Button::update();
     if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::ShortPress)
     {

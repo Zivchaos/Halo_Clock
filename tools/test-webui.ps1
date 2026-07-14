@@ -87,13 +87,29 @@ try {
     $status = $null
     try { $status = $statusResponse.Body | ConvertFrom-Json; Assert-Halo $true "status contains valid JSON" }
     catch { Assert-Halo $false "status contains valid JSON" }
-    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","freeHeap","minimumFreeHeap")
+    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
     foreach ($field in $expected) { Assert-Halo ($status.PSObject.Properties.Name -contains $field) "status field $field exists" }
     Assert-Halo (@(10,25,40,80) -contains [int]$status.brightness) "status brightness is supported"
     Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.selectedMode) "selected mode is valid"
     Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.effectiveMode) "effective mode is valid"
     Assert-Halo ($status.uptimeSeconds -is [ValueType]) "uptime is numeric"
     Assert-Halo ($status.wifiConnected -is [bool]) "Wi-Fi state is boolean"
+    Assert-Halo ($status.weatherAvailable -is [bool]) "weather availability is boolean"
+    Assert-Halo ($status.weatherStale -is [bool]) "weather stale state is boolean"
+    if ([bool]$status.weatherAvailable) {
+        Assert-Halo ($null -ne $status.temperature) "available weather includes temperature"
+        Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$status.condition)) "available weather includes condition"
+        Assert-Halo (([int]$status.humidity -ge 0) -and ([int]$status.humidity -le 100)) "available weather humidity is valid"
+        Assert-Halo ([double]$status.windSpeed -ge 0) "available weather wind speed is valid"
+        Assert-Halo ([long]$status.weatherLastUpdate -gt 0) "available weather has update time"
+    }
+
+    $weatherRefresh = Post-Form "/api/weather/refresh" @{}
+    Assert-Halo (@(202,429) -contains $weatherRefresh.Status) "weather refresh is accepted or rate limited"
+    if ($weatherRefresh.Status -eq 202) {
+        $weatherRateLimit = Post-Form "/api/weather/refresh" @{}
+        Assert-Halo ($weatherRateLimit.Status -eq 429) "repeated weather refresh is rate limited"
+    }
 
     Test-Mode "CLASSIC"
     Test-Mode "MINIMAL"

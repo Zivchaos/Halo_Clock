@@ -101,3 +101,44 @@ void Oled::notice(const char* message, DisplayMode mode)
     centerText(message, 38);
     oled.sendBuffer();
 }
+
+void Oled::weather(const WeatherData& weather, DisplayMode mode)
+{
+    oled.clearBuffer();
+    oled.setContrast(mode == DisplayMode::NIGHT ? Config::NIGHT_OLED_CONTRAST : 255);
+
+    if (!weather.valid)
+    {
+        oled.setFont(u8g2_font_6x12_tf);
+        centerText("WEATHER", 24);
+        centerText("UNAVAILABLE", 45);
+        oled.sendBuffer();
+        return;
+    }
+
+    char temperature[16];
+    char details[28];
+    snprintf(
+        temperature,
+        sizeof(temperature),
+        "%.1f C",
+        static_cast<double>(weather.temperature));
+    snprintf(
+        details,
+        sizeof(details),
+        "H:%u%%  W:%.1f",
+        weather.humidity,
+        static_cast<double>(weather.windSpeed));
+
+    oled.setFont(u8g2_font_6x12_tf);
+    const char* heading = weather.stale
+        ? "WEATHER - STALE"
+        : (weather.error[0] != '\0' ? "WEATHER - CACHED" : "WEATHER");
+    centerText(heading, 11);
+    oled.setFont(u8g2_font_logisoso20_tf);
+    centerText(temperature, 36);
+    oled.setFont(u8g2_font_6x12_tf);
+    centerText(weather.condition, 49);
+    centerText(details, 62);
+    oled.sendBuffer();
+}
