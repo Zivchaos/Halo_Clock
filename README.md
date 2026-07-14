@@ -77,6 +77,42 @@ the checked-in defaults point to Tel Aviv, Israel. Units, the 15-minute refresh
 interval, retry timing, request timeout, and stale-data age are centralized in
 the same file. Weather data is cached in RAM only and is never written to flash.
 
+### Flash partition layout and migration
+
+HALO Clock uses `partitions_halo_4mb.csv` on the 4 MB ESP32 flash. The standard
+layout left only 1,280 KiB for each OTA image while reserving 1,408 KiB for an
+unused SPIFFS filesystem. The custom layout intentionally omits SPIFFS, retains
+NVS, OTA metadata, and the coredump partition, and provides two equal 1,984 KiB
+(`0x1F0000`, 2,031,616-byte) OTA application slots.
+
+| Partition | Offset | Size |
+| --- | ---: | ---: |
+| NVS | `0x9000` | 20 KiB |
+| OTA metadata | `0xE000` | 8 KiB |
+| OTA app 0 | `0x10000` | 1,984 KiB |
+| OTA app 1 | `0x200000` | 1,984 KiB |
+| Coredump | `0x3F0000` | 64 KiB |
+
+The first installation of this layout must be performed over USB. An ordinary
+OTA upload replaces an application image but cannot safely migrate the flash
+partition table. Once the USB migration has succeeded, normal OTA uploads can
+resume and will alternate between the two expanded application slots.
+
+Before migrating, record the selected mode, brightness, automatic NIGHT
+schedule, and Wi-Fi network details. Then:
+
+1. Build the firmware and confirm the generated partition table and image size.
+2. Connect the ESP32 over USB and upload the firmware once.
+3. Boot the clock and verify Wi-Fi, saved Preferences, time synchronization,
+   OLED, LED ring, button, Web UI, weather, and automatic NIGHT behavior.
+4. Perform one OTA upload and repeat the functional checks.
+
+NVS remains at the original `0x9000` offset with the original 20 KiB size, so a
+normal USB upload should preserve Wi-Fi credentials and Preferences. Do not
+erase the whole flash unless the migrated device fails to boot or its stored
+data proves incompatible. A full erase clears NVS and requires Wi-Fi
+reprovisioning and settings re-entry.
+
 ## First-time setup
 
 When HALO has no saved Wi-Fi network, it creates:
