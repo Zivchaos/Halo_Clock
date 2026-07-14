@@ -81,13 +81,16 @@ try {
     Assert-Halo ($root.Status -eq 200) "GET / returns HTTP 200"
     Assert-Halo ($root.ContentType -match "text/html") "GET / returns HTML"
     Assert-Halo ($root.Body -match "HALO Clock") "main page identifies HALO Clock"
+    Assert-Halo ($root.Body -match 'id="diagnosticsPanel"') "main page includes diagnostics panel"
+    Assert-Halo ($root.Body -match "Copy diagnostics") "main page includes diagnostics copy control"
+    Assert-Halo ($root.Body -match "Download diagnostics JSON") "main page includes diagnostics download control"
 
     $statusResponse = Invoke-HaloRequest -Method GET -Path "/api/status"
     Assert-Halo ($statusResponse.Status -eq 200) "GET /api/status returns HTTP 200"
     $status = $null
     try { $status = $statusResponse.Body | ConvertFrom-Json; Assert-Halo $true "status contains valid JSON" }
     catch { Assert-Halo $false "status contains valid JSON" }
-    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
+    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","resetReason","runningPartition","wifiReconnectCount","ntpSynchronized","timeSyncAgeValid","lastTimeSyncAgeSeconds","weatherRequestCount","weatherSuccessCount","weatherFailureCount","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
     foreach ($field in $expected) { Assert-Halo ($status.PSObject.Properties.Name -contains $field) "status field $field exists" }
     Assert-Halo (@(10,25,40,80) -contains [int]$status.brightness) "status brightness is supported"
     Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.selectedMode) "selected mode is valid"
@@ -96,6 +99,38 @@ try {
     Assert-Halo ($status.wifiConnected -is [bool]) "Wi-Fi state is boolean"
     Assert-Halo ($status.weatherAvailable -is [bool]) "weather availability is boolean"
     Assert-Halo ($status.weatherStale -is [bool]) "weather stale state is boolean"
+
+    $diagnosticsResponse = Invoke-HaloRequest -Method GET -Path "/api/diagnostics"
+    Assert-Halo ($diagnosticsResponse.Status -eq 200) "GET /api/diagnostics returns HTTP 200"
+    Assert-Halo ($diagnosticsResponse.ContentType -match "application/json") "diagnostics returns JSON content type"
+    $diagnostics = $null
+    try { $diagnostics = $diagnosticsResponse.Body | ConvertFrom-Json; Assert-Halo $true "diagnostics contains valid JSON" }
+    catch { Assert-Halo $false "diagnostics contains valid JSON" }
+    foreach ($section in @("system","wifi","time","weather","ota","firmware")) {
+        Assert-Halo ($diagnostics.PSObject.Properties.Name -contains $section) "diagnostics section $section exists"
+    }
+    Assert-Halo ($diagnostics.system.uptimeSeconds -is [ValueType]) "diagnostics uptime is numeric"
+    Assert-Halo ($diagnostics.system.freeHeap -is [ValueType]) "diagnostics free heap is numeric"
+    Assert-Halo ($diagnostics.system.minimumFreeHeap -is [ValueType]) "diagnostics minimum heap is numeric"
+    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.system.resetReason)) "diagnostics reset reason exists"
+    Assert-Halo ($diagnostics.wifi.connected -is [bool]) "diagnostics Wi-Fi state is boolean"
+    Assert-Halo ($diagnostics.wifi.reconnectCount -is [ValueType]) "diagnostics reconnect count is numeric"
+    Assert-Halo ($diagnostics.wifi.rssi -is [ValueType]) "diagnostics RSSI is numeric"
+    Assert-Halo ($diagnostics.time.ntpSynchronized -is [bool]) "diagnostics NTP state is boolean"
+    Assert-Halo ($diagnostics.time.syncAgeValid -is [bool]) "diagnostics time-sync age validity is boolean"
+    Assert-Halo ($diagnostics.time.lastSuccessfulSyncAgeSeconds -is [ValueType]) "diagnostics time-sync age is numeric"
+    Assert-Halo ($diagnostics.weather.requestCount -is [ValueType]) "diagnostics weather request count is numeric"
+    Assert-Halo ($diagnostics.weather.successCount -is [ValueType]) "diagnostics weather success count is numeric"
+    Assert-Halo ($diagnostics.weather.failureCount -is [ValueType]) "diagnostics weather failure count is numeric"
+    Assert-Halo ($diagnostics.weather.lastError -is [string]) "diagnostics last weather error is text"
+    Assert-Halo ($diagnostics.ota.ready -is [bool]) "diagnostics OTA ready state is boolean"
+    Assert-Halo ($diagnostics.ota.updating -is [bool]) "diagnostics OTA updating state is boolean"
+    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.ota.runningPartition)) "diagnostics running partition exists"
+    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.version)) "diagnostics firmware version exists"
+    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildDate)) "diagnostics build date exists"
+    Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildTime)) "diagnostics build time exists"
+    Assert-Halo ([bool]$diagnostics.ota.ready -eq [bool]$status.otaReady) "diagnostics OTA ready matches status"
+    Assert-Halo ([bool]$diagnostics.ota.updating -eq [bool]$status.otaUpdating) "diagnostics OTA updating matches status"
     if ([bool]$status.weatherAvailable) {
         Assert-Halo ($null -ne $status.temperature) "available weather includes temperature"
         Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$status.condition)) "available weather includes condition"
