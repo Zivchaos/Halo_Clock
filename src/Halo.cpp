@@ -5,13 +5,16 @@
 #include "Button.h"
 #include "Clock.h"
 #include "Config.h"
+#include "DiagnosticsService.h"
 #include "Ledring.h"
 #include "Oled.h"
 #include "OtaService.h"
 #include "SettingsService.h"
+#include "TimeService.h"
 #include "Version.h"
 #include "WebService.h"
 #include "WeatherService.h"
+#include <WiFi.h>
 
 namespace
 {
@@ -24,6 +27,7 @@ namespace
 void Halo::begin()
 {
     Serial.begin(Config::SERIAL_BAUD);
+    DiagnosticsService::begin();
     SettingsService::begin();
     Button::begin();
     Oled::begin();
@@ -94,6 +98,14 @@ void Halo::update()
     {
         Clock::update(!OtaService::isDisplayReserved());
     }
+
+    const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+    DiagnosticsService::update(
+        wifiConnected,
+        wifiConnected ? WiFi.RSSI() : 0,
+        TimeService::isSynchronized(),
+        OtaService::isReady(),
+        OtaService::isUpdating());
 }
 
 bool Halo::setBrightness(uint8_t brightness)
