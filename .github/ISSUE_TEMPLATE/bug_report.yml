@@ -1,0 +1,62 @@
+name: Bug report
+description: Report reproducible firmware or Web UI behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve HALO CST. Remove credentials, public IPs, and private location data from logs.
+  - type: input
+    id: version
+    attributes:
+      label: Firmware version
+      placeholder: 1.0.0-rc1
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation method
+      options: [USB, ArduinoOTA, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware and power
+      description: Board, OLED, LED count/type, supply voltage/current rating, and relevant wiring.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics and serial output
+      description: Paste only the relevant excerpt; redact network and location details.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I removed credentials and private information.
+          required: true

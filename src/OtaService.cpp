@@ -6,6 +6,7 @@
 #include "Config.h"
 #include "Ledring.h"
 #include "Oled.h"
+#include "Version.h"
 
 namespace
 {
@@ -46,7 +47,7 @@ namespace
 
     void configureOta()
     {
-        ArduinoOTA.setHostname(Config::OTA_HOSTNAME);
+        ArduinoOTA.setHostname(Product::HOSTNAME);
 
         ArduinoOTA.onStart([]() {
             updating = true;
@@ -88,9 +89,9 @@ namespace
 
         ArduinoOTA.begin();
         initialized = true;
-        Oled::status("OTA READY", Config::OTA_HOSTNAME);
+        Oled::status("OTA READY", Product::HOSTNAME);
         startNotice(Config::OTA_READY_NOTICE_MS);
-        Serial.printf("OTA READY: %s.local\r\n", Config::OTA_HOSTNAME);
+        Serial.printf("OTA READY: %s.local\r\n", Product::HOSTNAME);
     }
 }
 

@@ -38,7 +38,6 @@ namespace Config
     constexpr uint8_t AUTO_NIGHT_END_MINUTE = 0;
 
     // OTA is intentionally unauthenticated and must only be used on a trusted local network.
-    constexpr const char* OTA_HOSTNAME = "halo-clock";
     constexpr uint8_t OTA_LED_BRIGHTNESS = 40;
     constexpr uint32_t OTA_READY_NOTICE_MS = 1500;
     constexpr uint32_t OTA_RESULT_NOTICE_MS = 3000;
@@ -46,11 +45,12 @@ namespace Config
     constexpr uint16_t WEB_PORT = 80;
     constexpr uint32_t WEB_REBOOT_DELAY_MS = 500;
 
-    // Current weather is provided by Open-Meteo without an API key. Change
-    // these WGS84 coordinates to move the weather location.
+    // Current weather is provided by Open-Meteo without an API key. These
+    // checked-in coordinates are a deliberate public example near Greenwich,
+    // UK. Change them to the installation's WGS84 latitude and longitude.
     constexpr const char* WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
-    constexpr float WEATHER_LATITUDE = 32.0853F;
-    constexpr float WEATHER_LONGITUDE = 34.7818F;
+    constexpr float WEATHER_LATITUDE = 51.4769F;
+    constexpr float WEATHER_LONGITUDE = 0.0005F;
     constexpr const char* WEATHER_TEMPERATURE_UNIT = "celsius";
     constexpr const char* WEATHER_WIND_SPEED_UNIT = "kmh";
     constexpr uint32_t WEATHER_REFRESH_INTERVAL_MS = 15UL * 60UL * 1000UL;
@@ -65,6 +65,8 @@ namespace Config
     constexpr uint32_t WEATHER_TASK_STACK_SIZE = 8192;
     constexpr bool ENABLE_WEATHER_OLED = true;
 
+    // Compatibility contract: keep the legacy namespace so branded upgrades
+    // retain brightness, display mode, and automatic NIGHT settings.
     constexpr const char* SETTINGS_NAMESPACE = "halo-clock";
     constexpr const char* SETTINGS_BRIGHTNESS_KEY = "brightness";
     constexpr const char* SETTINGS_DISPLAY_MODE_KEY = "displayMode";
@@ -90,11 +92,11 @@ namespace Config
     constexpr bool LED_CLOCKWISE = true;
     constexpr bool ENABLE_RING_CALIBRATION = false;
 
-    constexpr const char* WIFI_PORTAL_NAME = "HALO Clock Setup";
-    constexpr const char* WIFI_PORTAL_PASSWORD = "halo-clock";
     constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 300;
 
     constexpr const char* NTP_SERVER_PRIMARY = "pool.ntp.org";
     constexpr const char* NTP_SERVER_SECONDARY = "time.nist.gov";
-    constexpr const char* ISRAEL_TIMEZONE = "IST-2IDT,M3.4.4/26,M10.5.0";
+    // POSIX timezone default retained for existing installations. Public
+    // builders should configure this for their location before flashing.
+    constexpr const char* LOCAL_TIMEZONE = "IST-2IDT,M3.4.4/26,M10.5.0";
 }

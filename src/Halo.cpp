@@ -37,7 +37,7 @@ void Halo::begin()
     delay(400);
     Oled::status("OLED", "PASS");
     delay(400);
-    Oled::status("HALO", "READY");
+    Oled::status(Product::NAME, "READY");
     delay(400);
     LedRing::begin(SettingsService::brightness());
     LedRing::bootAnimation();
@@ -61,14 +61,14 @@ void Halo::begin()
 
     Serial.println();
     Serial.println("========================================");
-    Serial.println(Version::NAME);
-    Serial.println(Version::TAGLINE);
+    Serial.println(Product::NAME);
+    Serial.println(Product::EXPANDED_NAME);
     Serial.print("Firmware : ");
-    Serial.println(Version::FIRMWARE);
+    Serial.println(Product::FIRMWARE_VERSION);
     Serial.print("Build    : ");
-    Serial.print(Version::BUILD_DATE);
+    Serial.print(Product::BUILD_DATE);
     Serial.print(" ");
-    Serial.println(Version::BUILD_TIME);
+    Serial.println(Product::BUILD_TIME);
     Serial.println("Initialization Complete");
     Serial.println("========================================");
 }

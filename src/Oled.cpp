@@ -6,6 +6,7 @@
 
 #include "Config.h"
 #include "Hardware.h"
+#include "Version.h"
 
 namespace
 {
@@ -33,9 +34,9 @@ void Oled::splash()
 {
     oled.clearBuffer();
     oled.setFont(u8g2_font_logisoso20_tf);
-    oled.drawStr(15, 28, "HALO");
-    oled.setFont(u8g2_font_6x12_tf);
-    oled.drawStr(18, 48, "Connected Timepiece");
+    centerText(Product::NAME, 28);
+    oled.setFont(u8g2_font_5x7_tf);
+    centerText(Product::EXPANDED_NAME, 48);
     oled.sendBuffer();
 }
 
