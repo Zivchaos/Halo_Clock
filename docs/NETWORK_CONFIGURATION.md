@@ -35,7 +35,7 @@ distinction, fallback flag, and failure count.
 
 1. If the dashboard is reachable through DHCP fallback, correct and save the
    static values or select DHCP.
-2. To force DHCP physically, begin holding GPIO27 within 30 seconds after the
+2. To force DHCP physically, begin holding GPIO27 within 30 seconds after
    HALO CST finishes its startup sequence, continue for 10 seconds, and wait for
    the automatic reboot.
 3. If the device remains unreachable, connect it over USB and install known-good
