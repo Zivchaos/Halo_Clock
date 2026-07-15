@@ -4,7 +4,8 @@ enum class ButtonEvent
 {
     None,
     ShortPress,
-    LongPress
+    LongPress,
+    NetworkRecovery
 };
 
 class Button

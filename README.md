@@ -136,6 +136,33 @@ After joining the setup network, choose the home Wi-Fi network. Once connected, 
 
 The embedded dashboard controls brightness, night schedule, theme, display mode, hour width, LED offset and direction, weather coordinates, timezone, firmware updates, restart, and Wi-Fi reset.
 
+### DHCP and static IPv4
+
+DHCP is the default and recommended network mode. The dashboard's **Network
+configuration** section can store a static IPv4 address, gateway, subnet mask,
+primary DNS, and optional secondary DNS. **Save and Apply** validates the entire
+configuration, sends a response to the browser, and then reboots; it never
+changes the active interface during the request. A wrong static address can
+make the clock unreachable, so reserve the address in the router where
+possible.
+
+Static settings are applied before WiFiManager starts connecting. A static boot
+is considered successful after Wi-Fi connects with the requested local IP,
+gateway, and subnet and remains stable for 15 seconds. NTP, DNS, Internet, and
+weather availability do not affect this decision. Two failed static boots cause
+a temporary DHCP fallback without overwriting the saved static configuration.
+The dashboard and diagnostics show
+configured mode, effective mode, active addresses, fallback state, and failure
+count. Saving static settings again retries them; choosing DHCP replaces them.
+
+For physical recovery, start holding the GPIO27 button within 30 seconds after
+the clock finishes its startup sequence and keep it held for 10 seconds. The
+clock saves DHCP mode and reboots.
+This deliberately long, boot-limited gesture avoids accidental activation. As
+a final fallback, connect over USB and install known-good firmware. Erasing the
+entire flash is only a last resort because it also removes Wi-Fi credentials
+and all Preferences settings.
+
 ## Repository layout
 
 ```text
