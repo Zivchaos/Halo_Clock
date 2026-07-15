@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://halo-clock.local",
+    [string]$BaseUrl = "http://halo-cst.local",
     [int]$Hours = 8,
     [int]$IntervalSeconds = 60
 )
@@ -69,7 +69,7 @@ while ((Get-Date) -lt $deadline) {
         $pageChecks++
         try {
             $page = $client.GetStringAsync("$($BaseUrl.TrimEnd('/'))/").GetAwaiter().GetResult()
-            if ($page -notmatch "HALO Clock") { throw "Main page identification missing" }
+            if ($page -notmatch "HALO CST") { throw "Main page identification missing" }
         } catch {
             $pageFailures++
             Write-Warning "Main page check failed: $($_.Exception.Message)"

@@ -1,42 +1,32 @@
-# HALO wiring guide
+# HALO CST wiring guide
 
 ## Pin assignment
 
 ```text
-ESP32 GPIO18 --- 330 Ω --- WS2812B DIN
-ESP32 GPIO21 ------------ SH1106 SDA
-ESP32 GPIO22 ------------ SH1106 SCL
-ESP32 GPIO27 --- button --- GND
+ESP32 GPIO18 --- 330–470 Ω --- WS2812B DIN
+ESP32 GPIO21 ---------------- SH1106 SDA
+ESP32 GPIO22 ---------------- SH1106 SCL
+ESP32 GPIO27 --- button ----- GND
 
-ESP32 5V ---------------- WS2812B 5V
-ESP32 3V3 --------------- SH1106 VCC
-ESP32 GND --------------- WS2812B GND and SH1106 GND
+regulated 5 V --------------- WS2812B 5 V
+ESP32 3V3 ------------------- SH1106 VCC
+common GND ------------------ ESP32, WS2812B, SH1106, supply
 ```
+
+GPIO27 is configured as `INPUT_PULLUP`, so the button is active-low and needs no external pull-up.
 
 ## LED power protection
 
-Place a 500–1000 µF electrolytic capacitor near the strip input:
+Place a 500–1000 µF electrolytic capacitor across 5 V and GND near the first pixel. Observe polarity. Place a 330–470 Ω resistor in series with the data line near DIN.
 
-```text
-5V  ---- capacitor +
-GND ---- capacitor -
-```
-
-Observe capacitor polarity. The 330 Ω resistor belongs in series with the data line near the first pixel.
+Sixty unrestricted WS2812B pixels can draw several amperes at full white. Size the regulated 5 V supply, wire gauge, connector, and fuse for the maximum output your installation permits. Do not power a large ring from the ESP32 3.3 V regulator. Always use a common ground.
 
 ## Logic level
 
-Short 3.3V data wiring commonly works with WS2812B ECO pixels. For longer or unreliable wiring, use a 74AHCT125 or 74HCT245 powered at 5V. Do not use a slow BSS138 I²C level-shifter module for the pixel data signal.
+Short 3.3 V data wiring often works with WS2812B ECO pixels. For long, noisy, or unreliable wiring, use a 74AHCT125/74HCT245 powered at 5 V. Avoid slow bidirectional I²C level-shifter modules for LED data.
 
-## Power
+## Orientation calibration
 
-The default firmware limits estimated LED current to 650 mA and uses conservative brightness. Use a regulated 5V USB supply rated for at least 1A. For higher custom brightness, use a larger supply and inject 5V/GND directly at the strip while maintaining common ground with the ESP32.
+`LED_ZERO_OFFSET` selects the physical pixel representing logical 12 o’clock. `LED_CLOCKWISE` controls direction. Set `ENABLE_RING_CALIBRATION` temporarily to show four colored cardinal positions, install over USB, determine the correct values, then disable calibration and rebuild.
 
-## Orientation
-
-After assembly, open the dashboard and adjust:
-
-1. **12 o'clock LED offset** until the top physical LED is the 12 o'clock tick.
-2. Disable **Clockwise strip** if time advances in the wrong direction.
-
-No firmware change is required.
+All hour ticks, minute progress, hour markers, and second markers share the same mapping.

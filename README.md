@@ -1,187 +1,238 @@
-# HALO Clock
+# HALO CST — Connected Smart Timepiece
 
-![HALO logo](assets/halo-logo.svg)
+HALO CST is an open-source ESP32 clock that combines a 60-pixel WS2812B ring, a 128×64 SH1106 OLED, local controls, and network services. “CST” deliberately means both **Connected Smart Timepiece** and the familiar idea of a time standard.
 
-**HALO is an elegant, connected timepiece built for makers who appreciate thoughtful design, clean engineering, and beautiful light.**
+Current firmware: **1.0.0-rc1**
 
-HALO combines a 60-pixel WS2812B clock face with a central 128×64 SH1106 OLED. It synchronizes time over Wi-Fi, shows local weather, stores its configuration in flash, and exposes a responsive dashboard at `http://halo-clock.local`.
+## Project overview
 
-## Current firmware
+The LED ring presents time at a glance while the OLED shows exact local time, temporary weather, and service notices. The clock keeps its core interaction local: one physical button and a responsive Web UI on the LAN. Wi-Fi supplies NTP time, current conditions from Open-Meteo, and ArduinoOTA updates.
 
-Version `0.5.0-beta` includes:
+## Features
 
-- WiFiManager captive setup portal with automatic reconnect
-- NTP time with configurable POSIX timezone and DST
-- Five LED display modes and six color themes
-- Configurable 1-, 3-, or 5-pixel hour marker
-- Automatic day/night brightness
-- Gamma correction and a 650 mA LED current limiter
-- Smooth seconds trail, minute progress, ticks, orientation, and direction controls
-- Rotating clock, weather, network, and system OLED pages
-- Non-blocking queued OLED notifications
-- Open-Meteo current weather (no API key)
-- Persistent settings using ESP32 Preferences
-- Mobile web dashboard and browser firmware updates
-- One-button page, theme, mode, and Wi-Fi setup controls
-- mDNS address: `halo-clock.local`
+- NTP-synchronized local time with a configurable POSIX timezone
+- CLASSIC, MINIMAL, and NIGHT display modes
+- Scheduled automatic NIGHT mode with manual override
+- Four persistent normal brightness levels
+- Configurable 60-LED orientation mapping
+- WiFiManager captive-portal provisioning
+- Local Web UI and JSON status/diagnostics APIs
+- Keyless HTTPS current weather with cache, stale state, and backoff
+- ArduinoOTA updates with OLED and LED progress
+- RAM-only device diagnostics
+- Equal 1.9375 MiB OTA application slots on 4 MiB flash
 
-## Hardware
+## Hardware requirements
 
-| Component | Connection |
-|---|---|
-| WS2812B DIN | GPIO18 through a 330 Ω series resistor |
-| WS2812B power | 5V and GND |
-| SH1106 SDA | GPIO21 |
-| SH1106 SCL | GPIO22 |
-| SH1106 power | 3.3V and GND |
-| Push button | GPIO27 to GND |
+- ESP32-WROOM DevKit or compatible `esp32dev` board with 4 MiB flash
+- SH1106 128×64 I²C OLED, normally at address `0x3C`
+- WS2812B-compatible 60-pixel ring or strip
+- Momentary push button
+- Regulated 5 V power source sized for the LED load
 
-Add a 500–1000 µF electrolytic capacitor across the LED strip's 5V and GND input. All devices must share ground. See [the wiring guide](docs/WIRING.md) before soldering.
+## Bill of materials
 
-## Build and flash
+| Quantity | Part | Notes |
+| ---: | --- | --- |
+| 1 | ESP32-WROOM DevKit | 4 MiB flash |
+| 1 | SH1106 128×64 OLED | I²C, 3.3 V compatible |
+| 1 | 60-pixel WS2812B ring/strip | Match the firmware LED count |
+| 1 | Normally-open momentary button | Connects GPIO27 to GND |
+| 1 | 330–470 Ω resistor | Series resistor at LED data input |
+| 1 | 500–1000 µF electrolytic capacitor | Across LED 5 V and GND |
+| 1 | 5 V supply and wiring | Current rating appropriate to use |
+| Optional | 74AHCT125 level shifter | Recommended for long/noisy data wiring |
 
-1. Install [Visual Studio Code](https://code.visualstudio.com/) and PlatformIO.
-2. Open this repository as a PlatformIO project.
-3. Connect the ESP32-WROOM DevKit over USB.
-4. Run **PlatformIO: Build**, then **PlatformIO: Upload**.
-5. Open the serial monitor at 115200 baud.
+## Wiring
 
-The first `0.5.0-beta` installation must use USB because this release installs an OTA-capable partition table. Later releases can use the browser updater.
+| Function | ESP32 pin | Connection |
+| --- | --- | --- |
+| WS2812B data | GPIO18 | Through series resistor to DIN |
+| Button | GPIO27 | Button to GND; firmware uses `INPUT_PULLUP` |
+| OLED SDA | GPIO21 | SH1106 SDA |
+| OLED SCL | GPIO22 | SH1106 SCL |
+| Ground | GND | Common ground for ESP32, OLED, LEDs, and supply |
 
-Command-line equivalent:
+See [docs/WIRING.md](docs/WIRING.md) for a complete connection guide.
 
-```powershell
-platformio run --project-conf platformIO.ini
-platformio run --project-conf platformIO.ini --target upload
-platformio device monitor --baud 115200
+## Power and WS2812 safety
+
+Do not design the power supply around the low average consumption of the clock face. Sixty WS2812B pixels can draw several amperes at unrestricted full white. HALO CST uses conservative brightness, but the supply, wire gauge, connector, and fuse must suit the maximum load you permit.
+
+- Power the LED ring from regulated 5 V; do not draw a large ring through the ESP32 3.3 V regulator.
+- Join LED and ESP32 grounds before applying the data signal.
+- Add the bulk capacitor near the first pixel and a series data resistor near DIN.
+- Never connect or move wiring while powered.
+- A 5 V logic buffer is recommended when 3.3 V data is unreliable.
+
+## Build prerequisites
+
+Install [Visual Studio Code](https://code.visualstudio.com/) with the PlatformIO extension, or PlatformIO Core. A data-capable USB cable and the board’s serial driver are required for first installation.
+
+The project pins its Arduino libraries in `platformIO.ini`. PlatformIO downloads them during the first build.
+
+## PlatformIO build
+
+From the repository root:
+
+```sh
+pio run
 ```
 
-### ArduinoOTA updates
+The normal environment is `esp32dev`. To compile the OTA environment explicitly:
 
-After Wi-Fi connects, the clock advertises as `halo-clock.local`. OTA password
-authentication is intentionally disabled for now, so network firmware updates
-must only be used on a trusted local network. USB/serial upload remains the
-default and is still supported.
-
-```powershell
-platformio run -e esp32dev_ota --target upload --upload-port halo-clock.local
+```sh
+pio run -e esp32dev_ota
 ```
 
-The dashboard is embedded in the firmware; no LittleFS upload is required.
+## First USB installation
 
-### Weather location
+1. Review `include/Hardware.h`, `include/Config.h`, and `include/Version.h`.
+2. Connect the ESP32 over USB.
+3. Build and install with `pio run --target upload --upload-port <serial-port>`.
+4. Open a 115200-baud serial monitor.
+5. Provision Wi-Fi through `HALO-CST-Setup` if no saved network is available.
 
-Current conditions come from the keyless Open-Meteo API over HTTPS. Configure
-`WEATHER_LATITUDE` and `WEATHER_LONGITUDE` in `include/Config.h` before building;
-the checked-in defaults point to Tel Aviv, Israel. Units, the 15-minute refresh
-interval, retry timing, request timeout, and stale-data age are centralized in
-the same file. Weather data is cached in RAM only and is never written to flash.
+The setup access point is intentionally open. Complete provisioning near the device on a trusted network.
 
-### Flash partition layout and migration
+## WiFiManager setup
 
-HALO Clock uses `partitions_halo_4mb.csv` on the 4 MB ESP32 flash. The standard
-layout left only 1,280 KiB for each OTA image while reserving 1,408 KiB for an
-unused SPIFFS filesystem. The custom layout intentionally omits SPIFFS, retains
-NVS, OTA metadata, and the coredump partition, and provides two equal 1,984 KiB
-(`0x1F0000`, 2,031,616-byte) OTA application slots.
+On a fresh device, or when stored Wi-Fi cannot connect before the portal timeout, join **HALO-CST-Setup** and follow the captive portal. After connection, the device is available at:
 
-| Partition | Offset | Size |
-| --- | ---: | ---: |
-| NVS | `0x9000` | 20 KiB |
-| OTA metadata | `0xE000` | 8 KiB |
-| OTA app 0 | `0x10000` | 1,984 KiB |
-| OTA app 1 | `0x200000` | 1,984 KiB |
-| Coredump | `0x3F0000` | 64 KiB |
+```text
+http://halo-cst.local
+```
 
-The first installation of this layout must be performed over USB. An ordinary
-OTA upload replaces an application image but cannot safely migrate the flash
-partition table. Once the USB migration has succeeded, normal OTA uploads can
-resume and will alternate between the two expanded application slots.
+The branding migration does not erase existing ESP32 Wi-Fi credentials. Devices upgrading from older firmware change from `halo-clock.local` to `halo-cst.local` after reboot. The new setup AP name only matters when provisioning is required.
 
-Before migrating, record the selected mode, brightness, automatic NIGHT
-schedule, and Wi-Fi network details. Then:
+Saved application settings intentionally remain in the legacy Preferences namespace `halo-clock`. This internal storage identifier preserves brightness, display mode, and automatic NIGHT settings; it is not the current product or network name.
 
-1. Build the firmware and confirm the generated partition table and image size.
-2. Connect the ESP32 over USB and upload the firmware once.
-3. Boot the clock and verify Wi-Fi, saved Preferences, time synchronization,
-   OLED, LED ring, button, Web UI, weather, and automatic NIGHT behavior.
-4. Perform one OTA upload and repeat the functional checks.
+## Web UI usage
 
-NVS remains at the original `0x9000` offset with the original 20 KiB size, so a
-normal USB upload should preserve Wi-Fi credentials and Preferences. Do not
-erase the whole flash unless the migrated device fails to boot or its stored
-data proves incompatible. A full erase clears NVS and requires Wi-Fi
-reprovisioning and settings re-entry.
+Open `http://halo-cst.local` from the same LAN. The page displays time, network state, selected and effective display modes, brightness, automatic NIGHT state, weather, OTA state, and diagnostics. It can change mode, brightness, and NIGHT schedule; request a weather refresh; download diagnostics; or request a confirmed reboot.
 
-## First-time setup
+The page polls only `/api/status` every three seconds. Diagnostics load on demand.
 
-When HALO has no saved Wi-Fi network, it creates:
+## OTA update workflow
 
-- Network: `HALO Clock Setup`
-- Password: `REDACTED`
-- Portal: `http://192.168.4.1`
+ArduinoOTA starts after Wi-Fi connects and advertises as `halo-cst` on the default ArduinoOTA port, 3232. Build and upload with:
 
-After joining the setup network, choose the home Wi-Fi network. Once connected, open `http://halo-clock.local` to configure the clock.
+```sh
+pio run -e esp32dev_ota --target upload --upload-port halo-cst.local
+```
+
+During transfer the OLED and LED ring show progress and normal rendering resumes after reboot or an OTA error. USB/serial upload remains supported.
+
+## Custom partition migration warning
+
+HALO CST uses `partitions_halo_4mb.csv`: NVS at `0x9000`, OTA metadata at `0xE000`, equal app slots at `0x10000` and `0x200000`, and coredump at `0x3F0000`. SPIFFS is intentionally absent.
+
+An ordinary OTA update cannot safely replace a device’s partition table. The first migration from another layout must be installed over USB. Existing NVS and Preferences may survive because the NVS offset is unchanged, but preservation is not guaranteed if flash is erased. Record important settings, install over USB, verify provisioning and settings, then resume OTA updates. See [docs/PARTITION_MIGRATION.md](docs/PARTITION_MIGRATION.md).
+
+## Weather configuration
+
+Open-Meteo provides keyless current conditions over HTTPS. Configure `WEATHER_LATITUDE`, `WEATHER_LONGITUDE`, temperature units, wind units, timeouts, refresh interval, backoff, and stale age in `include/Config.h`.
+
+The checked-in coordinates are a public example near Greenwich, UK—not a contributor’s private location. Replace them with the installation’s WGS84 coordinates. Weather data is kept in RAM only; a failed refresh never clears the last valid cache.
 
 ## Button controls
 
-| Gesture | Action |
-|---|---|
-| Short press | Next OLED page |
-| Double press | Next color theme |
-| Long press (1.2 s) | Next LED display mode |
-| Very long press (5 s) | Start Wi-Fi setup portal |
+- Short press: cycle normal LED brightness through 10, 25, 40, and 80.
+- Long press: cycle CLASSIC → MINIMAL → NIGHT → CLASSIC.
+- A long press does not generate an additional short press on release.
 
-## Dashboard
+The button is active-low on GPIO27 and uses the ESP32 internal pull-up.
 
-The embedded dashboard controls brightness, night schedule, theme, display mode, hour width, LED offset and direction, weather coordinates, timezone, firmware updates, restart, and Wi-Fi reset.
+## Display modes
 
-### DHCP and static IPv4
+- **CLASSIC:** hour ticks, minute progress, hour marker, second marker, and full digital OLED time.
+- **MINIMAL:** hour, minute, and second markers with large `HH:MM` on OLED.
+- **NIGHT:** fixed low LED brightness, hour/minute markers only, and reduced OLED contrast.
 
-DHCP is the default and recommended network mode. The dashboard's **Network
-configuration** section can store a static IPv4 address, gateway, subnet mask,
-primary DNS, and optional secondary DNS. **Save and Apply** validates the entire
-configuration, sends a response to the browser, and then reboots; it never
-changes the active interface during the request. A wrong static address can
-make the clock unreachable, so reserve the address in the router where
-possible.
+Selected mode and normal brightness are saved. NIGHT’s fixed brightness never overwrites the saved normal brightness.
 
-Static settings are applied before WiFiManager starts connecting. A static boot
-is considered successful after Wi-Fi connects with the requested local IP,
-gateway, and subnet and remains stable for 15 seconds. NTP, DNS, Internet, and
-weather availability do not affect this decision. Two failed static boots cause
-a temporary DHCP fallback without overwriting the saved static configuration.
-The dashboard and diagnostics show
-configured mode, effective mode, active addresses, fallback state, and failure
-count. Saving static settings again retries them; choosing DHCP replaces them.
+## Automatic NIGHT
 
-For physical recovery, start holding the GPIO27 button within 30 seconds after
-the clock finishes its startup sequence and keep it held for 10 seconds. The
-clock saves DHCP mode and reboots.
-This deliberately long, boot-limited gesture avoids accidental activation. As
-a final fallback, connect over USB and install known-good firmware. Erasing the
-entire flash is only a last resort because it also removes Wi-Fi credentials
-and all Preferences settings.
+The default schedule is 20:00–06:00 and correctly crosses midnight. During the interval, NIGHT becomes the effective mode without changing the persisted selected mode. A long press creates a manual override until the next schedule boundary. Scheduling waits safely until local time is valid.
 
-## Repository layout
+Change the defaults in `include/Config.h`; the Web UI can update the stored schedule. The default POSIX timezone currently targets Israel with automatic DST. Public builders should set `LOCAL_TIMEZONE` for their installation.
+
+## DHCP and static IPv4
+
+DHCP is the default and recommended network mode. The Web UI's **Network configuration** section can store a static IPv4 address, gateway, subnet mask, primary DNS, and optional secondary DNS. Values are accepted only when every required address is valid, the subnet mask is contiguous, the device address is a usable host address, and the gateway is a usable address in the same subnet. Invalid requests leave all saved settings unchanged.
+
+**Save and Apply** sends its response to the browser before scheduling a controlled reboot; it never changes the active interface during the request. Record or reserve the new address first because an incorrect static configuration can make the device unreachable.
+
+Static settings are applied before WiFiManager connects. A static connection is confirmed only after Wi-Fi uses the requested local IP, gateway, and subnet continuously for 15 seconds. NTP, DNS, Internet, weather, and external-provider availability are independent and do not affect this decision. After two genuine failed static boots, HALO CST temporarily uses DHCP without overwriting the saved static configuration. The Web UI and diagnostics distinguish configured mode, effective mode, active addresses, fallback state, and failure count.
+
+For physical recovery, begin holding GPIO27 within 30 seconds after startup completes and keep it held for 10 seconds. HALO CST saves DHCP mode and reboots. This deliberately long, startup-limited gesture makes accidental activation unlikely. If neither the Web UI nor the gesture is available, connect over USB and install known-good firmware. Erase the whole flash only as a last resort because doing so also removes Wi-Fi credentials and all Preferences.
+
+## Diagnostics
+
+`GET /api/diagnostics` returns uptime, current/minimum heap, reset reason, Wi-Fi state and reconnect count, NTP state and sync age, weather counters/error, OTA state/running partition, firmware version, and build time. Counters are RAM-only and reset at boot. The Web UI can copy or download the same snapshot.
+
+`GET /api/status` remains the lightweight periodically polled endpoint.
+
+## Recovery and factory reset
+
+1. Power-cycle the device and inspect the 115200-baud startup log.
+2. Confirm the 5 V supply and shared ground before diagnosing network behavior.
+3. If mDNS fails, use the IP address printed on serial or shown by the router.
+4. Reinstall the current firmware over USB if OTA is unavailable.
+5. To recover from an unreachable static configuration, use the GPIO27 gesture documented above or reinstall known-good firmware over USB.
+6. As a last resort, erase flash with `pio run --target erase`, then upload over USB and provision again.
+
+Erasing flash removes Wi-Fi credentials and all Preferences. The GPIO27 gesture resets only network mode to DHCP; it is not a full factory reset.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| No OLED output | Address `0x3C`, 3.3 V, SDA GPIO21, SCL GPIO22 |
+| LED ring dark or erratic | 5 V power, common ground, DIN direction, series resistor, level shifting |
+| Clock face rotated/reversed | `LED_ZERO_OFFSET` and `LED_CLOCKWISE` in `include/Config.h` |
+| Setup portal absent | Saved Wi-Fi may already be valid; inspect serial output |
+| `halo-cst.local` unavailable | Same LAN, mDNS support, client isolation, router device list |
+| Time wrong | Internet access, NTP reachability, and `LOCAL_TIMEZONE` |
+| Weather unavailable | Coordinates, DNS/TLS access, Open-Meteo availability, cache/error fields |
+| OTA target absent | Wi-Fi connected, same LAN/VLAN, port 3232 allowed, hostname resolved |
+
+## Security model
+
+HALO CST is designed for a **trusted local network**. Its Web UI and ArduinoOTA service are unauthenticated in this release. Do not expose the ESP32 directly to the public Internet, place it on an untrusted guest LAN, or forward ports 80 or 3232. Network segmentation is recommended.
+
+Weather requests disclose the configured approximate coordinates to the external Open-Meteo service over HTTPS. No cloud telemetry, analytics, or remote logging is included.
+
+## Resource usage
+
+The validated `esp32dev` release-candidate build uses **54,740 bytes RAM** and **1,181,813 bytes flash**. Each application slot is 2,031,616 bytes, leaving **849,803 bytes** (41.8%) free. PlatformIO prints the exact values for every build; small differences in build metadata can occur between environments.
+
+## Project structure
 
 ```text
-assets/       HALO logo and icon source files
-docs/         Wiring, architecture, and product documentation
-faceplates/   Firmware-independent printable faceplate SVGs
-include/      Hardware, build, and shared type configuration
-src/          Firmware services and device managers
-platformIO.ini
+include/                 Central hardware, behavior, and product metadata
+src/                     Firmware services and renderers
+test/                    PlatformIO embedded tests
+tools/                   API, weather, soak, and release-audit scripts
+docs/                    Architecture, wiring, and partition guidance
+.github/                 CI, issue forms, and pull-request template
+partitions_halo_4mb.csv  Dual-OTA 4 MiB partition layout
+platformIO.ini           Build and test environments
 ```
 
-## Faceplates
+## Testing summary
 
-The firmware only needs the LED index located at 12 o'clock. Physical styling is independent. Starter faceplates are provided in `faceplates/`; use the dashboard's **12 o'clock LED offset** and **clockwise strip** controls to align any design without recompiling.
+The project includes PlatformIO builds for normal and OTA firmware, embedded weather-parser and diagnostics tests, a full Web UI/API suite, weather hardware/API regression tests, and polling soak scripts. Before a release, the checklist also covers USB installation, a real OTA update, existing-device settings/Wi-Fi preservation, and a safe fresh-device setup simulation.
 
-## Safety
+## Roadmap
 
-Do not power a fully illuminated 60-pixel strip through an under-rated USB source or thin breadboard wiring. HALO limits estimated LED current in software, but the power wiring and supply still need to be appropriate.
+- Stabilize the 1.0 release candidate and public setup experience
+- Improve automated build/test coverage across supported ESP32 variants
+- Evaluate authenticated management without sacrificing local-first operation
+- Document additional enclosures and face designs from contributors
 
-## License
+Weather forecasts, cloud dashboards, telemetry, and additional display modes are intentionally outside this release candidate.
 
-HALO Clock is released under the [MIT License](LICENSE).
+## License and contributing
+
+HALO CST is available under the [MIT License](LICENSE). Contributions are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the [Code of Conduct](CODE_OF_CONDUCT.md), and the [release checklist](RELEASE_CHECKLIST.md) before participating.

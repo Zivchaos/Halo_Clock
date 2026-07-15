@@ -53,9 +53,9 @@ void DiagnosticsService::begin()
         state.runningPartition,
         sizeof(state.runningPartition),
         runningPartition == nullptr ? "unknown" : runningPartition->label);
-    copyText(state.firmwareVersion, sizeof(state.firmwareVersion), Version::FIRMWARE);
-    copyText(state.buildDate, sizeof(state.buildDate), Version::BUILD_DATE);
-    copyText(state.buildTime, sizeof(state.buildTime), Version::BUILD_TIME);
+    copyText(state.firmwareVersion, sizeof(state.firmwareVersion), Product::FIRMWARE_VERSION);
+    copyText(state.buildDate, sizeof(state.buildDate), Product::BUILD_DATE);
+    copyText(state.buildTime, sizeof(state.buildTime), Product::BUILD_TIME);
     wifiStateKnown = false;
     everConnected = false;
     lastTimeSyncAt = 0;

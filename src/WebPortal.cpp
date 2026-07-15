@@ -130,7 +130,7 @@ namespace
         server.on("/update", HTTP_POST,
             [] {
                 const bool failed = Update.hasError();
-                server.send(200, "text/plain", failed ? "Update failed. Return to HALO and try again." : "Update complete. HALO is restarting...");
+                server.send(200, "text/plain", failed ? "Update failed. Return to HALO CST and try again." : "Update complete. HALO CST is restarting...");
                 if (!failed)
                 {
                     delay(300);
@@ -171,12 +171,16 @@ void WebPortal::update()
 
     if (!started)
     {
-        MDNS.begin("halo-clock");
+        MDNS.begin(Product::HOSTNAME);
         MDNS.addService("http", "tcp", 80);
         server.begin();
         started = true;
-        Serial.println("[WEB] Dashboard: http://halo-clock.local");
-        Notifications::post(NotificationType::Info, "Dashboard ready", "halo-clock.local", 2200);
+        Serial.printf("[WEB] Dashboard: http://%s.local\r\n", Product::HOSTNAME);
+        Notifications::post(
+            NotificationType::Info,
+            "Dashboard ready",
+            String(Product::HOSTNAME) + ".local",
+            2200);
     }
     server.handleClient();
 }

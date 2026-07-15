@@ -1,29 +1,35 @@
-# HALO product definition
+# HALO CST product definition
+
+**Repository-facing name:** HALO CST — Connected Smart Timepiece
+
+“CST” is deliberately dual-purpose: it expands to Connected Smart Timepiece and evokes the language of time standards.
 
 ## Promise
 
-Time should be beautiful, readable, and calm. The LED ring tells time; the OLED provides context.
+Time should be beautiful, readable, calm, and locally controlled. The LED ring communicates at a glance; the OLED provides exact context.
 
-## Design principles
+## Principles
 
-1. Time remains readable during every animation.
-2. Normal operation does not require a serial monitor or recompilation.
-3. Physical faceplate style remains independent of firmware.
-4. Network loss does not stop the local clock once time has synchronized.
-5. Features must be configurable, recoverable, and observable.
+1. The clock continues to function when optional network services fail.
+2. Normal interaction is non-blocking and available from both the button and local Web UI.
+3. Saved choices survive reboot and compatible firmware upgrades.
+4. Selected intent remains distinct from temporary effective behavior.
+5. Network-facing features are explicit about their trusted-LAN security model.
+6. Hardware, behavior, and product identity are centralized and documented.
 
-## OLED behavior
+## Release-candidate identity
 
-The OLED rotates through clock, weather, network, and system pages every 12 seconds. A button press advances immediately. Notifications temporarily take over the display and return to the previous page automatically.
+- Product: HALO CST
+- Expanded name: Connected Smart Timepiece
+- Firmware: 1.0.0-rc1
+- Hostname and OTA target: `halo-cst`
+- Setup access point: `HALO-CST-Setup`
+- Local dashboard: `http://halo-cst.local`
 
-## LED modes
+These values are centralized in `include/Version.h`. Internal class names such as `Halo` remain stable to avoid cosmetic refactors and regression risk.
 
-- **Progress** — elapsed minute arc, wide hour marker, second trail
-- **Analog** — independent hour, minute, and second hands
-- **Minimal** — hands only, no ticks
-- **Ambient** — calm hour glow only
-- **Rainbow** — animated rainbow minute progress
+## Current scope
 
-## Themes
+The release candidate includes synchronized time, three display modes, automatic NIGHT, persistent settings, ring calibration, WiFiManager provisioning, ArduinoOTA, a local Web UI/API, cached current weather, and RAM-only diagnostics.
 
-Classic, Nordic, Fire, Matrix, Cyberpunk, and Sunset are included. Theme definitions are centralized in `src/Themes.cpp`.
+It deliberately excludes cloud telemetry, forecasts, alarms, browser firmware upload, authentication, filesystem storage, and extra display modes.

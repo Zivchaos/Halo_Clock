@@ -2,6 +2,8 @@
 
 #include <Preferences.h>
 
+#include "Config.h"
+
 namespace
 {
     Preferences preferences;
@@ -39,7 +41,7 @@ namespace
 
 void Settings::begin()
 {
-    preferences.begin("halo-clock", false);
+    preferences.begin(Config::SETTINGS_NAMESPACE, false);
     values.dayBrightness = preferences.getUChar("dayBright", values.dayBrightness);
     values.nightBrightness = preferences.getUChar("nightBright", values.nightBrightness);
     values.nightStartHour = preferences.getUChar("nightHour", values.nightStartHour);

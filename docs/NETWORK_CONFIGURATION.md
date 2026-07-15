@@ -1,6 +1,6 @@
 # Network configuration and recovery
 
-HALO uses DHCP by default and continues to use WiFiManager for SSID and password
+HALO CST uses DHCP by default and continues to use WiFiManager for SSID and password
 provisioning. IP configuration is an independent setting stored in the existing
 `halo-clock` Preferences namespace.
 
@@ -35,8 +35,8 @@ distinction, fallback flag, and failure count.
 
 1. If the dashboard is reachable through DHCP fallback, correct and save the
    static values or select DHCP.
-2. To force DHCP physically, begin holding GPIO27 within 30 seconds after the
-   clock finishes its startup sequence, continue for 10 seconds, and wait for
+2. To force DHCP physically, begin holding GPIO27 within 30 seconds after
+   HALO CST finishes its startup sequence, continue for 10 seconds, and wait for
    the automatic reboot.
 3. If the device remains unreachable, connect it over USB and install known-good
    firmware. Keep the existing flash contents when possible.
