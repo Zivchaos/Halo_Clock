@@ -84,13 +84,15 @@ try {
     Assert-Halo ($root.Body -match 'id="diagnosticsPanel"') "main page includes diagnostics panel"
     Assert-Halo ($root.Body -match "Copy diagnostics") "main page includes diagnostics copy control"
     Assert-Halo ($root.Body -match "Download diagnostics JSON") "main page includes diagnostics download control"
+    Assert-Halo ($root.Body -match "Network configuration") "main page includes network configuration"
+    Assert-Halo ($root.Body -match "Save and Apply") "network changes require explicit Save and Apply"
 
     $statusResponse = Invoke-HaloRequest -Method GET -Path "/api/status"
     Assert-Halo ($statusResponse.Status -eq 200) "GET /api/status returns HTTP 200"
     $status = $null
     try { $status = $statusResponse.Body | ConvertFrom-Json; Assert-Halo $true "status contains valid JSON" }
     catch { Assert-Halo $false "status contains valid JSON" }
-    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","resetReason","runningPartition","wifiReconnectCount","ntpSynchronized","timeSyncAgeValid","lastTimeSyncAgeSeconds","weatherRequestCount","weatherSuccessCount","weatherFailureCount","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
+    $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","resetReason","runningPartition","wifiReconnectCount","ntpSynchronized","timeSyncAgeValid","lastTimeSyncAgeSeconds","weatherRequestCount","weatherSuccessCount","weatherFailureCount","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","networkConfiguredMode","networkEffectiveMode","dhcpFallbackActive","staticConnectionFailureCount","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
     foreach ($field in $expected) { Assert-Halo ($status.PSObject.Properties.Name -contains $field) "status field $field exists" }
     Assert-Halo (@(10,25,40,80) -contains [int]$status.brightness) "status brightness is supported"
     Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.selectedMode) "selected mode is valid"
@@ -106,7 +108,7 @@ try {
     $diagnostics = $null
     try { $diagnostics = $diagnosticsResponse.Body | ConvertFrom-Json; Assert-Halo $true "diagnostics contains valid JSON" }
     catch { Assert-Halo $false "diagnostics contains valid JSON" }
-    foreach ($section in @("system","wifi","time","weather","ota","firmware")) {
+    foreach ($section in @("system","wifi","network","time","weather","ota","firmware")) {
         Assert-Halo ($diagnostics.PSObject.Properties.Name -contains $section) "diagnostics section $section exists"
     }
     Assert-Halo ($diagnostics.system.uptimeSeconds -is [ValueType]) "diagnostics uptime is numeric"
@@ -131,6 +133,44 @@ try {
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildTime)) "diagnostics build time exists"
     Assert-Halo ([bool]$diagnostics.ota.ready -eq [bool]$status.otaReady) "diagnostics OTA ready matches status"
     Assert-Halo ([bool]$diagnostics.ota.updating -eq [bool]$status.otaUpdating) "diagnostics OTA updating matches status"
+    Assert-Halo (@("DHCP","STATIC") -contains [string]$diagnostics.network.configuredMode) "diagnostics configured network mode is valid"
+    Assert-Halo (@("DHCP","STATIC") -contains [string]$diagnostics.network.effectiveMode) "diagnostics effective network mode is valid"
+    Assert-Halo ($diagnostics.network.dhcpFallbackActive -is [bool]) "diagnostics DHCP fallback state is boolean"
+    Assert-Halo ($diagnostics.network.staticConnectionFailureCount -is [ValueType]) "diagnostics static failure count is numeric"
+
+    $networkResponse = Invoke-HaloRequest -Method GET -Path "/api/network"
+    Assert-Halo ($networkResponse.Status -eq 200) "GET /api/network returns HTTP 200"
+    $network = $null
+    try { $network = $networkResponse.Body | ConvertFrom-Json; Assert-Halo $true "network endpoint contains valid JSON" }
+    catch { Assert-Halo $false "network endpoint contains valid JSON" }
+    foreach ($section in @("configured","effective","active")) {
+        Assert-Halo ($network.PSObject.Properties.Name -contains $section) "network section $section exists"
+    }
+    Assert-Halo (@("DHCP","STATIC") -contains [string]$network.configured.mode) "configured network mode is valid"
+    Assert-Halo (@("DHCP","STATIC") -contains [string]$network.effective.mode) "effective network mode is valid"
+    Assert-Halo ($network.effective.dhcpFallbackActive -is [bool]) "network fallback state is boolean"
+
+    $networkBeforeInvalid = $networkResponse.Body
+    $invalidNetworks = @(
+        @{ Name="missing confirmation"; Form=@{mode="DHCP"} },
+        @{ Name="missing mode"; Form=@{confirm="true"} },
+        @{ Name="invalid mode"; Form=@{confirm="true";mode="AUTO"} },
+        @{ Name="missing static fields"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.20"} },
+        @{ Name="malformed static IP"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.999";gateway="192.168.1.1";subnet="255.255.255.0";primaryDns="1.1.1.1"} },
+        @{ Name="invalid subnet mask"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.20";gateway="192.168.1.1";subnet="255.0.255.0";primaryDns="1.1.1.1"} },
+        @{ Name="network address"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.0";gateway="192.168.1.1";subnet="255.255.255.0";primaryDns="1.1.1.1"} },
+        @{ Name="gateway outside subnet"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.20";gateway="192.168.2.1";subnet="255.255.255.0";primaryDns="1.1.1.1"} },
+        @{ Name="invalid primary DNS"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.20";gateway="192.168.1.1";subnet="255.255.255.0";primaryDns="0.0.0.0"} },
+        @{ Name="invalid secondary DNS"; Form=@{confirm="true";mode="STATIC";ip="192.168.1.20";gateway="192.168.1.1";subnet="255.255.255.0";primaryDns="1.1.1.1";secondaryDns="bad"} }
+    )
+    foreach ($case in $invalidNetworks) {
+        $response = Post-Form "/api/network" $case.Form
+        Assert-Halo ($response.Status -eq 400) "$($case.Name) network request returns HTTP 400"
+        $after = Invoke-HaloRequest -Method GET -Path "/api/network"
+        Assert-Halo ($after.Body -eq $networkBeforeInvalid) "$($case.Name) preserves saved network configuration"
+    }
+    $unconfirmedNetworkReset = Post-Form "/api/network/reset" @{}
+    Assert-Halo ($unconfirmedNetworkReset.Status -eq 400) "unconfirmed network reset returns HTTP 400"
     if ([bool]$status.weatherAvailable) {
         Assert-Halo ($null -ne $status.temperature) "available weather includes temperature"
         Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$status.condition)) "available weather includes condition"

@@ -75,6 +75,16 @@ namespace Config
     constexpr const char* SETTINGS_AUTO_NIGHT_START_MINUTE_KEY = "autoStartM";
     constexpr const char* SETTINGS_AUTO_NIGHT_END_HOUR_KEY = "autoEndH";
     constexpr const char* SETTINGS_AUTO_NIGHT_END_MINUTE_KEY = "autoEndM";
+    constexpr const char* SETTINGS_NETWORK_KEY = "networkCfg";
+    constexpr const char* SETTINGS_STATIC_FAILURE_COUNT_KEY = "netFail";
+
+    constexpr uint8_t STATIC_NETWORK_FAILURE_LIMIT = 2;
+    constexpr uint32_t STATIC_NETWORK_VALIDATION_TIMEOUT_MS = 45UL * 1000UL;
+    constexpr uint32_t STATIC_NETWORK_CONFIRMATION_MS = 15UL * 1000UL;
+    constexpr uint8_t STATIC_NETWORK_MAX_PRECONFIRM_DROPS = 3;
+    constexpr uint32_t NETWORK_RECOVERY_HOLD_MS = 10UL * 1000UL;
+    constexpr uint32_t NETWORK_RECOVERY_BOOT_WINDOW_MS = 30UL * 1000UL;
+    constexpr uint32_t NETWORK_REBOOT_DELAY_MS = 750;
 
     // LED ring calibration. Logical position 0 is 12 o'clock; positions then
     // advance around the clock face in the selected direction.

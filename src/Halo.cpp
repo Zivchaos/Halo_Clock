@@ -7,6 +7,7 @@
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "Ledring.h"
+#include "NetworkService.h"
 #include "Oled.h"
 #include "OtaService.h"
 #include "SettingsService.h"
@@ -50,6 +51,7 @@ void Halo::begin()
     }
     else
     {
+        NetworkService::begin();
         Clock::begin(selectedDisplayMode);
         OtaService::begin();
         WeatherService::begin();
@@ -93,11 +95,20 @@ void Halo::update()
     {
         setDisplayMode(DisplayModes::next(SettingsService::displayMode()));
     }
+    else if (!OtaService::isUpdating() && buttonEvent == ButtonEvent::NetworkRecovery)
+    {
+        if (NetworkService::resetToDhcpAndReboot())
+        {
+            Oled::status("NETWORK RESET", "DHCP / REBOOT");
+        }
+    }
 
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
         Clock::update(!OtaService::isDisplayReserved());
     }
+
+    NetworkService::update();
 
     const bool wifiConnected = WiFi.status() == WL_CONNECTED;
     DiagnosticsService::update(

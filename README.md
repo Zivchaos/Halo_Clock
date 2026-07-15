@@ -157,6 +157,16 @@ The default schedule is 20:00–06:00 and correctly crosses midnight. During the
 
 Change the defaults in `include/Config.h`; the Web UI can update the stored schedule. The default POSIX timezone currently targets Israel with automatic DST. Public builders should set `LOCAL_TIMEZONE` for their installation.
 
+## DHCP and static IPv4
+
+DHCP is the default and recommended network mode. The Web UI's **Network configuration** section can store a static IPv4 address, gateway, subnet mask, primary DNS, and optional secondary DNS. Values are accepted only when every required address is valid, the subnet mask is contiguous, the device address is a usable host address, and the gateway is a usable address in the same subnet. Invalid requests leave all saved settings unchanged.
+
+**Save and Apply** sends its response to the browser before scheduling a controlled reboot; it never changes the active interface during the request. Record or reserve the new address first because an incorrect static configuration can make the device unreachable.
+
+Static settings are applied before WiFiManager connects. A static connection is confirmed only after Wi-Fi uses the requested local IP, gateway, and subnet continuously for 15 seconds. NTP, DNS, Internet, weather, and external-provider availability are independent and do not affect this decision. After two genuine failed static boots, HALO CST temporarily uses DHCP without overwriting the saved static configuration. The Web UI and diagnostics distinguish configured mode, effective mode, active addresses, fallback state, and failure count.
+
+For physical recovery, begin holding GPIO27 within 30 seconds after startup completes and keep it held for 10 seconds. HALO CST saves DHCP mode and reboots. This deliberately long, startup-limited gesture makes accidental activation unlikely. If neither the Web UI nor the gesture is available, connect over USB and install known-good firmware. Erase the whole flash only as a last resort because doing so also removes Wi-Fi credentials and all Preferences.
+
 ## Diagnostics
 
 `GET /api/diagnostics` returns uptime, current/minimum heap, reset reason, Wi-Fi state and reconnect count, NTP state and sync age, weather counters/error, OTA state/running partition, firmware version, and build time. Counters are RAM-only and reset at boot. The Web UI can copy or download the same snapshot.
@@ -169,9 +179,10 @@ Change the defaults in `include/Config.h`; the Web UI can update the stored sche
 2. Confirm the 5 V supply and shared ground before diagnosing network behavior.
 3. If mDNS fails, use the IP address printed on serial or shown by the router.
 4. Reinstall the current firmware over USB if OTA is unavailable.
-5. As a last resort, erase flash with `pio run --target erase`, then upload over USB and provision again.
+5. To recover from an unreachable static configuration, use the GPIO27 gesture documented above or reinstall known-good firmware over USB.
+6. As a last resort, erase flash with `pio run --target erase`, then upload over USB and provision again.
 
-Erasing flash removes Wi-Fi credentials and all Preferences. There is no button-triggered factory reset in this release.
+Erasing flash removes Wi-Fi credentials and all Preferences. The GPIO27 gesture resets only network mode to DHCP; it is not a full factory reset.
 
 ## Troubleshooting
 
@@ -194,7 +205,7 @@ Weather requests disclose the configured approximate coordinates to the external
 
 ## Resource usage
 
-The validated `esp32dev` release-candidate build uses **54,692 bytes RAM** and **1,166,237 bytes flash**. Each application slot is 2,031,616 bytes, leaving **865,379 bytes** (42.6%) free. PlatformIO prints the exact values for every build; small differences in build metadata can occur between environments.
+The validated `esp32dev` release-candidate build uses **54,740 bytes RAM** and **1,181,813 bytes flash**. Each application slot is 2,031,616 bytes, leaving **849,803 bytes** (41.8%) free. PlatformIO prints the exact values for every build; small differences in build metadata can occur between environments.
 
 ## Project structure
 
