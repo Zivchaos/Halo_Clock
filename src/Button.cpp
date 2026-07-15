@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include "Config.h"
 #include "Hardware.h"
 
 namespace
@@ -13,18 +14,27 @@ namespace
     bool lastReading = HIGH;
     uint32_t readingChangedAt = 0;
     uint32_t pressedAt = 0;
+    uint32_t recoveryWindowStartedAt = 0;
     bool longPressReported = false;
+    bool bootWindowPress = false;
+    bool recoveryWindowStarted = false;
 }
 
 void Button::begin()
 {
     pinMode(Hardware::BUTTON_PIN, INPUT_PULLUP);
+    recoveryWindowStarted = false;
 }
 
 ButtonEvent Button::update()
 {
     const bool reading = digitalRead(Hardware::BUTTON_PIN);
     const uint32_t now = millis();
+    if (!recoveryWindowStarted)
+    {
+        recoveryWindowStartedAt = now;
+        recoveryWindowStarted = true;
+    }
 
     if (reading != lastReading)
     {
@@ -39,6 +49,8 @@ ButtonEvent Button::update()
         {
             pressedAt = now;
             longPressReported = false;
+            bootWindowPress =
+                now - recoveryWindowStartedAt <= Config::NETWORK_RECOVERY_BOOT_WINDOW_MS;
             Serial.println("BUTTON PRESSED");
         }
         else
@@ -46,17 +58,38 @@ ButtonEvent Button::update()
             Serial.println("BUTTON RELEASED");
             if (!longPressReported)
             {
-                Serial.println("SHORT PRESS");
-                return ButtonEvent::ShortPress;
+                if (bootWindowPress && now - pressedAt >= LONG_PRESS_MS)
+                {
+                    longPressReported = true;
+                    Serial.println("LONG PRESS");
+                    return ButtonEvent::LongPress;
+                }
+                else
+                {
+                    Serial.println("SHORT PRESS");
+                    return ButtonEvent::ShortPress;
+                }
             }
         }
     }
 
     if (stableState == LOW && !longPressReported && now - pressedAt >= LONG_PRESS_MS)
     {
-        longPressReported = true;
-        Serial.println("LONG PRESS");
-        return ButtonEvent::LongPress;
+        if (bootWindowPress)
+        {
+            if (now - pressedAt >= Config::NETWORK_RECOVERY_HOLD_MS)
+            {
+                longPressReported = true;
+                Serial.println("NETWORK RECOVERY PRESS");
+                return ButtonEvent::NetworkRecovery;
+            }
+        }
+        else
+        {
+            longPressReported = true;
+            Serial.println("LONG PRESS");
+            return ButtonEvent::LongPress;
+        }
     }
 
     return ButtonEvent::None;
