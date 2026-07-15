@@ -10,6 +10,8 @@
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "Halo.h"
+#include "NetworkConfig.h"
+#include "NetworkService.h"
 #include "OtaService.h"
 #include "SettingsService.h"
 #include "TimeService.h"
@@ -27,7 +29,7 @@ namespace
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HALO Clock</title><style>
 :root{color-scheme:dark;--bg:#080d18;--panel:#121b2d;--line:#263653;--text:#f2f6ff;--muted:#9aabc7;--accent:#47b8ff;--ok:#54d69c;--bad:#ff6b7a}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#14213a,var(--bg) 45%);color:var(--text);font:16px system-ui,sans-serif}main{width:min(980px,calc(100% - 28px));margin:24px auto 48px}header{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:18px}h1{margin:0;font-size:clamp(1.8rem,5vw,3rem);letter-spacing:.08em}header p{margin:4px 0;color:var(--muted)}#clock{font:700 clamp(1.8rem,7vw,3.8rem) ui-monospace,monospace;color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:rgba(18,27,45,.94);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 32px #0004}.wide{grid-column:1/-1}h2{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat{padding:10px;background:#0b1322;border-radius:10px}.stat b,.stat span{display:block}.stat span{color:var(--muted);font-size:.8rem;margin-bottom:4px}.weather-now{font-size:2rem;font-weight:700;color:var(--accent);margin:0 0 4px}.weather-meta{color:var(--muted);margin:4px 0}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}label{display:block;color:var(--muted);font-size:.86rem}select,input[type=time],button{width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#0b1322;color:var(--text);padding:9px 11px;font:inherit}button{cursor:pointer;background:#173556;border-color:#2b71a3;font-weight:700}button.danger{background:#4a1d29;border-color:#9a3e50}button:disabled,select:disabled,input:disabled{opacity:.55;cursor:wait}.toggle{display:flex;align-items:center;gap:10px;min-height:44px}.toggle input{width:22px;height:22px}.feedback{min-height:24px;margin:14px 0 0;color:var(--ok)}.feedback.error{color:var(--bad)}dialog{width:min(420px,calc(100% - 32px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);padding:20px}dialog::backdrop{background:#02050acc}.dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:680px){header{display:block}.grid,.controls,.stats{grid-template-columns:1fr}.wide{grid-column:auto}main{width:min(980px,calc(100% - 18px));margin-top:14px}.card{padding:15px}}
-</style><style>details summary{cursor:pointer;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.diagnostics{margin-top:16px;padding:12px;overflow:auto;border-radius:10px;background:#08101d;color:#c9dcf8;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}.diagnostic-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}@media(max-width:680px){.diagnostic-actions{grid-template-columns:1fr}}</style></head><body><main><header><div><h1>HALO Clock</h1><p>Connected Timepiece</p></div><div id="clock">--:--:--</div></header>
+</style><style>details summary{cursor:pointer;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.diagnostics{margin-top:16px;padding:12px;overflow:auto;border-radius:10px;background:#08101d;color:#c9dcf8;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}.diagnostic-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.network-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.network-fields input[type=text]{width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#0b1322;color:var(--text);padding:9px 11px;font:inherit}.warning{color:#ffd166;border:1px solid #80682d;background:#2a2313;padding:12px;border-radius:10px}.network-actions{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:14px}@media(max-width:680px){.diagnostic-actions,.network-fields,.network-actions{grid-template-columns:1fr}}</style></head><body><main><header><div><h1>HALO Clock</h1><p>Connected Timepiece</p></div><div id="clock">--:--:--</div></header>
 <section class="grid"><article class="card wide"><h2>Live status</h2><div class="stats">
 <div class="stat"><span>Wi-Fi</span><b id="wifi">--</b></div><div class="stat"><span>IP address</span><b id="ip">--</b></div><div class="stat"><span>Signal</span><b id="rssi">--</b></div>
 <div class="stat"><span>Uptime</span><b id="uptime">--</b></div><div class="stat"><span>Firmware</span><b id="firmware">--</b></div><div class="stat"><span>OTA</span><b id="ota">--</b></div>
@@ -37,11 +39,12 @@ namespace
 <article class="card"><h2>Display</h2><div class="controls"><label>Mode<select id="mode" class="control"><option>CLASSIC</option><option>MINIMAL</option><option>NIGHT</option></select></label><label>Brightness<select id="brightness" class="control"><option>10</option><option>25</option><option>40</option><option>80</option></select></label></div></article>
 <article class="card"><h2>Weather</h2><p class="weather-now" id="weatherTemperature">--</p><p class="weather-meta" id="weatherCondition">Waiting for data</p><p class="weather-meta" id="weatherDetails">Humidity -- · Wind --</p><p class="weather-meta" id="weatherAge">Not updated</p><button id="weatherRefresh" class="control" type="button">Refresh weather</button></article>
 <article class="card"><h2>Automatic NIGHT</h2><form id="autoForm"><label class="toggle"><input id="autoEnabled" class="control" type="checkbox">Enabled</label><div class="controls"><label>Starts<input id="autoStart" class="control" type="time" required></label><label>Ends<input id="autoEnd" class="control" type="time" required></label></div><button class="control" type="submit">Save schedule</button></form></article>
+<article class="card wide"><h2>Network configuration</h2><div class="stats"><div class="stat"><span>Configured mode</span><b id="networkConfigured">--</b></div><div class="stat"><span>Effective mode</span><b id="networkEffective">--</b></div><div class="stat"><span>Active configuration</span><b id="networkActive">--</b></div></div><p class="warning">Changing network settings may make this device unreachable. Save and Apply stores the configuration, responds to this browser, and then reboots. Record the new address first.</p><form id="networkForm"><label>Network mode<select id="networkMode" class="control"><option value="DHCP">DHCP</option><option value="STATIC">Static IP</option></select></label><div id="staticNetworkFields" class="network-fields"><label>Static IP<input id="networkIp" class="control" type="text" inputmode="decimal" placeholder="192.168.1.50"></label><label>Gateway<input id="networkGateway" class="control" type="text" inputmode="decimal" placeholder="192.168.1.1"></label><label>Subnet mask<input id="networkSubnet" class="control" type="text" inputmode="decimal" placeholder="255.255.255.0"></label><label>Primary DNS<input id="networkDns1" class="control" type="text" inputmode="decimal" placeholder="1.1.1.1"></label><label>Secondary DNS (optional)<input id="networkDns2" class="control" type="text" inputmode="decimal" placeholder="8.8.8.8"></label></div><div class="network-actions"><button class="control" type="submit">Save and Apply</button><button id="networkReset" class="danger control" type="button">Reset to DHCP</button></div></form></article>
 <details class="card wide" id="diagnosticsPanel"><summary>Diagnostics</summary><pre class="diagnostics" id="diagnosticsOutput">Open or refresh to load current diagnostics.</pre><div class="diagnostic-actions"><button id="diagnosticsRefresh" type="button">Refresh</button><button id="diagnosticsCopy" type="button">Copy diagnostics</button><button id="diagnosticsDownload" type="button">Download diagnostics JSON</button></div></details>
 <article class="card wide"><h2>System</h2><button id="reboot" class="danger control">Reboot HALO Clock</button><p id="feedback" class="feedback" aria-live="polite"></p></article></section>
-<dialog id="rebootDialog"><h2>Confirm reboot</h2><p>The clock will be unavailable briefly while it restarts.</p><div class="dialog-actions"><button id="rebootCancel" type="button">Cancel</button><button id="rebootConfirm" class="danger control" type="button">Reboot now</button></div></dialog></main>
+<dialog id="rebootDialog"><h2>Confirm reboot</h2><p>The clock will be unavailable briefly while it restarts.</p><div class="dialog-actions"><button id="rebootCancel" type="button">Cancel</button><button id="rebootConfirm" class="danger control" type="button">Reboot now</button></div></dialog><dialog id="networkDialog"><h2>Confirm network change</h2><p id="networkConfirmText">The clock will reboot and its current address may stop responding.</p><div class="dialog-actions"><button id="networkCancel" type="button">Cancel</button><button id="networkConfirm" class="danger control" type="button">Save, apply, and reboot</button></div></dialog></main>
 <script>
-const $=id=>document.getElementById(id),controls=()=>document.querySelectorAll('.control');let busy=false,diagnosticsData=null;
+const $=id=>document.getElementById(id),controls=()=>document.querySelectorAll('.control');let busy=false,diagnosticsData=null,networkAction='save';
 function setBusy(value){busy=value;controls().forEach(x=>x.disabled=value)}
 function feedback(message,error=false){$('feedback').textContent=message;$('feedback').className='feedback'+(error?' error':'')}
 function hhmm(seconds){seconds=Number(seconds)||0;const d=Math.floor(seconds/86400),h=Math.floor(seconds%86400/3600),m=Math.floor(seconds%3600/60);return(d?d+'d ':'')+h+'h '+m+'m'}
@@ -50,13 +53,17 @@ async function status(){try{const r=await fetch('/api/status',{cache:'no-store'}
 async function loadDiagnostics(){try{const r=await fetch('/api/diagnostics',{cache:'no-store'});if(!r.ok)throw Error('Diagnostics request failed');diagnosticsData=await r.json();$('diagnosticsOutput').textContent=JSON.stringify(diagnosticsData,null,2)}catch(e){$('diagnosticsOutput').textContent=e.message;feedback(e.message,true)}}
 async function copyDiagnostics(){if(!diagnosticsData)await loadDiagnostics();if(!diagnosticsData)return;const text=JSON.stringify(diagnosticsData,null,2);try{if(navigator.clipboard)await navigator.clipboard.writeText(text);else{const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}feedback('Diagnostics copied')}catch(e){feedback('Copy failed',true)}}
 async function downloadDiagnostics(){if(!diagnosticsData)await loadDiagnostics();if(!diagnosticsData)return;const url=URL.createObjectURL(new Blob([JSON.stringify(diagnosticsData,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='halo-clock-diagnostics.json';link.click();URL.revokeObjectURL(url)}
+function toggleStaticFields(){const disabled=$('networkMode').value!=='STATIC';$('staticNetworkFields').querySelectorAll('input').forEach(x=>x.disabled=disabled)}
+async function loadNetwork(){try{const r=await fetch('/api/network',{cache:'no-store'});if(!r.ok)throw Error('Network request failed');const n=await r.json();$('networkConfigured').textContent=n.configured.mode;$('networkEffective').textContent=n.effective.mode+(n.effective.dhcpFallbackActive?' (fallback)':'');$('networkActive').textContent=n.active.ip+' / '+n.active.subnet+' via '+n.active.gateway;$('networkMode').value=n.configured.mode;$('networkIp').value=n.configured.staticIp;$('networkGateway').value=n.configured.gateway;$('networkSubnet').value=n.configured.subnet;$('networkDns1').value=n.configured.primaryDns;$('networkDns2').value=n.configured.secondaryDnsConfigured?n.configured.secondaryDns:'';toggleStaticFields()}catch(e){feedback(e.message,true)}}
+async function applyNetwork(){const reset=networkAction==='reset',path=reset?'/api/network/reset':'/api/network',data=reset?{confirm:'true'}:{confirm:'true',mode:$('networkMode').value,ip:$('networkIp').value,gateway:$('networkGateway').value,subnet:$('networkSubnet').value,primaryDns:$('networkDns1').value,secondaryDns:$('networkDns2').value};$('networkDialog').close();setBusy(true);feedback('Saving network settings…');try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data)}),result=await r.json();if(!r.ok||!result.ok)throw Error(result.error||'Network request failed');feedback('Saved. Device is rebooting; reconnect using the configured address.')}catch(e){feedback(e.message,true);setBusy(false)}}
 async function post(path,data){setBusy(true);feedback('Applying…');try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data)});const result=await r.json();if(!r.ok||!result.ok)throw Error(result.error||'Request failed');feedback('Saved');await status()}catch(e){feedback(e.message,true)}finally{setBusy(false);await status()}}
 $('mode').addEventListener('change',e=>post('/api/mode',{mode:e.target.value}));$('brightness').addEventListener('change',e=>post('/api/brightness',{value:e.target.value}));
 $('weatherRefresh').addEventListener('click',()=>post('/api/weather/refresh',{}));
 $('autoForm').addEventListener('submit',e=>{e.preventDefault();const a=$('autoStart').value.split(':'),b=$('autoEnd').value.split(':');post('/api/auto-night',{enabled:String($('autoEnabled').checked),startHour:a[0]||'',startMinute:a[1]||'',endHour:b[0]||'',endMinute:b[1]||''})});
 $('reboot').addEventListener('click',()=>$('rebootDialog').showModal());$('rebootCancel').addEventListener('click',()=>$('rebootDialog').close());$('rebootConfirm').addEventListener('click',()=>{$('rebootDialog').close();post('/api/reboot',{confirm:'true'})});
 $('diagnosticsPanel').addEventListener('toggle',e=>{if(e.target.open&&!diagnosticsData)loadDiagnostics()});$('diagnosticsRefresh').addEventListener('click',loadDiagnostics);$('diagnosticsCopy').addEventListener('click',copyDiagnostics);$('diagnosticsDownload').addEventListener('click',downloadDiagnostics);
-status();setInterval(status,3000);
+$('networkMode').addEventListener('change',toggleStaticFields);$('networkForm').addEventListener('submit',e=>{e.preventDefault();networkAction='save';$('networkConfirmText').textContent='Save these settings and reboot? The current address may stop responding.';$('networkDialog').showModal()});$('networkReset').addEventListener('click',()=>{networkAction='reset';$('networkConfirmText').textContent='Reset the saved network mode to DHCP and reboot?';$('networkDialog').showModal()});$('networkCancel').addEventListener('click',()=>$('networkDialog').close());$('networkConfirm').addEventListener('click',applyNetwork);
+status();loadNetwork();setInterval(status,3000);
 </script></body></html>)HALOHTML";
 
     const char* boolText(bool value)
@@ -76,6 +83,18 @@ status();setInterval(status,3000);
         snprintf(body, sizeof(body), "{\"ok\":false,\"error\":\"%s\"}", reason);
         sendJson(statusCode, body);
         Serial.printf("WEB ERROR: %s\r\n", reason);
+    }
+
+    String addressText(const IPv4Address& address)
+    {
+        char text[16];
+        NetworkConfig::formatIPv4(address, text, sizeof(text));
+        return String(text);
+    }
+
+    bool parseRequiredAddress(const char* name, IPv4Address& address)
+    {
+        return server.hasArg(name) && NetworkConfig::parseIPv4(server.arg(name).c_str(), address);
     }
 
     bool parseByteArgument(const char* name, uint8_t maximum, uint8_t& result)
@@ -162,7 +181,8 @@ status();setInterval(status,3000);
             }
         }
 
-        char body[1800];
+        const NetworkStatus network = NetworkService::snapshot();
+        char body[2000];
         snprintf(
             body,
             sizeof(body),
@@ -176,6 +196,8 @@ status();setInterval(status,3000);
             "\"brightness\":%u,\"autoNightEnabled\":%s,\"autoNightActive\":%s,"
             "\"autoNightStart\":\"%s\",\"autoNightEnd\":\"%s\",\"manualOverride\":%s,"
             "\"otaReady\":%s,\"otaUpdating\":%s,"
+            "\"networkConfiguredMode\":\"%s\",\"networkEffectiveMode\":\"%s\","
+            "\"dhcpFallbackActive\":%s,\"staticConnectionFailureCount\":%u,"
             "\"weatherAvailable\":%s,\"weatherStale\":%s,\"temperature\":%s,"
             "\"apparentTemperature\":%s,\"condition\":\"%s\",\"humidity\":%s,"
             "\"windSpeed\":%s,\"weatherLastUpdate\":%lu,\"weatherError\":\"%s\"}",
@@ -206,6 +228,10 @@ status();setInterval(status,3000);
             boolText(AutoNightService::isManualOverride()),
             boolText(OtaService::isReady()),
             boolText(OtaService::isUpdating()),
+            NetworkConfig::modeName(network.configuredMode),
+            NetworkConfig::modeName(network.effectiveMode),
+            boolText(network.dhcpFallbackActive),
+            network.staticConnectionFailureCount,
             boolText(weather.valid),
             boolText(weather.stale),
             temperatureText,
@@ -233,6 +259,18 @@ status();setInterval(status,3000);
         wifi["connected"] = diagnostics.wifiConnected;
         wifi["reconnectCount"] = diagnostics.wifiReconnectCount;
         wifi["rssi"] = diagnostics.wifiRssi;
+
+        const NetworkStatus networkStatus = NetworkService::snapshot();
+        JsonObject network = document["network"].to<JsonObject>();
+        network["configuredMode"] = NetworkConfig::modeName(networkStatus.configuredMode);
+        network["effectiveMode"] = NetworkConfig::modeName(networkStatus.effectiveMode);
+        network["activeIp"] = addressText(networkStatus.activeIp);
+        network["gateway"] = addressText(networkStatus.gateway);
+        network["subnet"] = addressText(networkStatus.subnet);
+        network["primaryDns"] = addressText(networkStatus.primaryDns);
+        network["secondaryDns"] = addressText(networkStatus.secondaryDns);
+        network["dhcpFallbackActive"] = networkStatus.dhcpFallbackActive;
+        network["staticConnectionFailureCount"] = networkStatus.staticConnectionFailureCount;
 
         JsonObject time = document["time"].to<JsonObject>();
         time["ntpSynchronized"] = diagnostics.ntpSynchronized;
@@ -378,6 +416,128 @@ status();setInterval(status,3000);
         sendJson(200, "{\"ok\":true}");
     }
 
+    void handleNetworkGet()
+    {
+        Serial.println("WEB REQUEST: GET /api/network");
+        const NetworkSettings& configured = SettingsService::network();
+        const NetworkStatus active = NetworkService::snapshot();
+        JsonDocument document;
+
+        JsonObject configuredJson = document["configured"].to<JsonObject>();
+        configuredJson["mode"] = NetworkConfig::modeName(configured.mode);
+        configuredJson["staticIp"] = addressText(configured.staticIp);
+        configuredJson["gateway"] = addressText(configured.gateway);
+        configuredJson["subnet"] = addressText(configured.subnet);
+        configuredJson["primaryDns"] = addressText(configured.primaryDns);
+        configuredJson["secondaryDns"] = addressText(configured.secondaryDns);
+        configuredJson["secondaryDnsConfigured"] = configured.secondaryDnsConfigured;
+
+        JsonObject effectiveJson = document["effective"].to<JsonObject>();
+        effectiveJson["mode"] = NetworkConfig::modeName(active.effectiveMode);
+        effectiveJson["dhcpFallbackActive"] = active.dhcpFallbackActive;
+        effectiveJson["staticConnectionFailureCount"] = active.staticConnectionFailureCount;
+
+        JsonObject activeJson = document["active"].to<JsonObject>();
+        activeJson["ip"] = addressText(active.activeIp);
+        activeJson["gateway"] = addressText(active.gateway);
+        activeJson["subnet"] = addressText(active.subnet);
+        activeJson["primaryDns"] = addressText(active.primaryDns);
+        activeJson["secondaryDns"] = addressText(active.secondaryDns);
+
+        String body;
+        body.reserve(640);
+        serializeJson(document, body);
+        server.sendHeader("Cache-Control", "no-store");
+        server.send(200, "application/json", body);
+    }
+
+    void handleNetworkSave()
+    {
+        Serial.println("WEB REQUEST: POST /api/network");
+        if (!changesAllowed()) return;
+        if (!server.hasArg("confirm") || server.arg("confirm") != "true")
+        {
+            sendError(400, "network change confirmation required");
+            return;
+        }
+        if (!server.hasArg("mode"))
+        {
+            sendError(400, "missing network mode");
+            return;
+        }
+
+        NetworkSettings settings = NetworkConfig::defaults();
+        const String mode = server.arg("mode");
+        if (mode == "DHCP")
+        {
+            settings.mode = NetworkMode::DHCP;
+        }
+        else if (mode == "STATIC")
+        {
+            settings.mode = NetworkMode::STATIC;
+            if (!parseRequiredAddress("ip", settings.staticIp) ||
+                !parseRequiredAddress("gateway", settings.gateway) ||
+                !parseRequiredAddress("subnet", settings.subnet) ||
+                !parseRequiredAddress("primaryDns", settings.primaryDns))
+            {
+                sendError(400, "missing or malformed static IPv4 field");
+                return;
+            }
+            if (server.hasArg("secondaryDns") && !server.arg("secondaryDns").isEmpty())
+            {
+                settings.secondaryDnsConfigured = true;
+                if (!NetworkConfig::parseIPv4(server.arg("secondaryDns").c_str(), settings.secondaryDns))
+                {
+                    sendError(400, "malformed secondary DNS address");
+                    return;
+                }
+            }
+        }
+        else
+        {
+            sendError(400, "invalid network mode");
+            return;
+        }
+
+        const NetworkValidationResult validation = NetworkConfig::validate(settings);
+        if (!validation.valid)
+        {
+            sendError(400, validation.error);
+            return;
+        }
+        if (!SettingsService::saveNetwork(settings))
+        {
+            sendError(500, "network settings could not be saved");
+            return;
+        }
+
+        sendJson(200, "{\"ok\":true,\"rebootScheduled\":true}");
+        rebootRequestedAt = millis();
+        rebootScheduled = true;
+        Serial.printf("WEB NETWORK APPLY: %s\r\n", NetworkConfig::modeName(settings.mode));
+    }
+
+    void handleNetworkReset()
+    {
+        Serial.println("WEB REQUEST: POST /api/network/reset");
+        if (!changesAllowed()) return;
+        if (!server.hasArg("confirm") || server.arg("confirm") != "true")
+        {
+            sendError(400, "network reset confirmation required");
+            return;
+        }
+        if (!SettingsService::resetNetworkToDhcp())
+        {
+            sendError(500, "network settings could not be reset");
+            return;
+        }
+
+        sendJson(200, "{\"ok\":true,\"rebootScheduled\":true}");
+        rebootRequestedAt = millis();
+        rebootScheduled = true;
+        Serial.println("WEB NETWORK RESET: DHCP");
+    }
+
     void handleReboot()
     {
         Serial.println("WEB REQUEST: POST /api/reboot");
@@ -399,6 +559,9 @@ status();setInterval(status,3000);
         server.on("/", HTTP_GET, handleRoot);
         server.on("/api/status", HTTP_GET, handleStatus);
         server.on("/api/diagnostics", HTTP_GET, handleDiagnostics);
+        server.on("/api/network", HTTP_GET, handleNetworkGet);
+        server.on("/api/network", HTTP_POST, handleNetworkSave);
+        server.on("/api/network/reset", HTTP_POST, handleNetworkReset);
         server.on("/api/mode", HTTP_POST, handleMode);
         server.on("/api/brightness", HTTP_POST, handleBrightness);
         server.on("/api/auto-night", HTTP_POST, handleAutoNight);
