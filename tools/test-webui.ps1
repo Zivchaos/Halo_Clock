@@ -86,6 +86,13 @@ try {
     Assert-Halo ($root.Body -match "Download diagnostics JSON") "main page includes diagnostics download control"
     Assert-Halo ($root.Body -match "Network configuration") "main page includes network configuration"
     Assert-Halo ($root.Body -match "Save and Apply") "network changes require explicit Save and Apply"
+    Assert-Halo ($root.Body -match 'data-testid="octagon-clock"') "main page includes octagonal clock component"
+    Assert-Halo ($root.Body -match '<meta name="viewport"') "main page includes responsive viewport metadata"
+    Assert-Halo ($root.Body -match 'href="/favicon\.svg"') "main page references the HALO CST favicon"
+
+    $favicon = Invoke-HaloRequest -Method GET -Path "/favicon.svg"
+    Assert-Halo ($favicon.Status -eq 200) "GET /favicon.svg returns HTTP 200"
+    Assert-Halo ($favicon.ContentType -match "image/svg\+xml") "favicon returns SVG content type"
 
     $statusResponse = Invoke-HaloRequest -Method GET -Path "/api/status"
     Assert-Halo ($statusResponse.Status -eq 200) "GET /api/status returns HTTP 200"
