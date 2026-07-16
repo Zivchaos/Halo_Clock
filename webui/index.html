@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e0e0e">
+  <meta name="description" content="Local control and status interface for HALO CST — Connected Smart Timepiece">
+  <title>HALO CST</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#overview">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#overview" aria-label="HALO CST overview">
+        <span class="brand-icon" aria-hidden="true"><span class="brand-oled"></span><span class="brand-button"></span></span>
+        <span><strong>HALO CST</strong><small>Connected Smart Timepiece</small></span>
+      </a>
+      <nav class="nav-list">
+        <a class="nav-link active" href="#overview" data-section-link="overview"><span aria-hidden="true">⌂</span>Overview</a>
+        <a class="nav-link" href="#time-display" data-section-link="time-display"><span aria-hidden="true">◷</span>Time &amp; Display</a>
+        <a class="nav-link" href="#network" data-section-link="network"><span aria-hidden="true">⌁</span>Network</a>
+        <a class="nav-link" href="#weather" data-section-link="weather"><span aria-hidden="true">☁</span>Weather</a>
+        <a class="nav-link" href="#diagnostics" data-section-link="diagnostics"><span aria-hidden="true">⌁</span>Diagnostics</a>
+        <a class="nav-link" href="#settings" data-section-link="settings"><span aria-hidden="true">⚙</span>Settings</a>
+      </nav>
+      <div class="sidebar-status">
+        <span class="status-dot" id="sidebarDot" aria-hidden="true"></span>
+        <span><strong id="connectionStatus">Connecting</strong><small id="sidebarAddress">Waiting for device</small></span>
+      </div>
+      <small class="sidebar-version">Firmware <span id="sidebarFirmware">—</span></small>
+    </aside>
+
+    <header class="mobile-header">
+      <a class="mobile-brand" href="#overview"><span class="mini-octagon" aria-hidden="true"></span><span><strong>HALO CST</strong><small>Connected Smart Timepiece</small></span></a>
+      <span class="health-pill" id="mobileHealth"><span class="status-dot" aria-hidden="true"></span><span>Connecting</span></span>
+    </header>
+    <nav class="mobile-nav" aria-label="Section navigation">
+      <a href="#overview" data-section-link="overview">Overview</a>
+      <a href="#time-display" data-section-link="time-display">Display</a>
+      <a href="#network" data-section-link="network">Network</a>
+      <a href="#weather" data-section-link="weather">Weather</a>
+      <a href="#diagnostics" data-section-link="diagnostics">Diagnostics</a>
+      <a href="#settings" data-section-link="settings">Settings</a>
+    </nav>
+
+    <main class="content" id="main-content">
+      <header class="page-header">
+        <div><p class="eyebrow">Local device interface</p><h1>Overview</h1></div>
+        <div class="header-health" id="healthStatus"><span class="status-dot" aria-hidden="true"></span><span>Connecting to HALO CST</span></div>
+      </header>
+
+      <section id="overview" class="section overview-section" aria-labelledby="overview-title">
+        <h2 class="sr-only" id="overview-title">Overview</h2>
+        <article class="panel clock-panel">
+          <div class="panel-label"><span class="status-dot cyan" aria-hidden="true"></span>Live clock</div>
+          <div class="octagon-clock" data-testid="octagon-clock" aria-label="HALO CST live octagonal clock">
+            <div class="octagon-glow" aria-hidden="true"></div>
+            <div class="octagon-face">
+              <span class="cardinal cardinal-12">12</span><span class="cardinal cardinal-3">3</span><span class="cardinal cardinal-6">6</span><span class="cardinal cardinal-9">9</span>
+              <div class="oled-display"><time id="clock">--:--:--</time><span id="clockDate">Device local time</span></div>
+              <span class="prototype-button" aria-hidden="true"></span>
+            </div>
+          </div>
+          <div class="clock-caption"><span id="clockModeCaption">Waiting for synchronized time</span><span id="clockNightCaption">Schedule —</span></div>
+        </article>
+
+        <div class="overview-rail">
+          <article class="panel summary-card"><div class="panel-label">Current mode</div><div class="summary-row"><span class="summary-icon" aria-hidden="true">◷</span><div><strong id="selected">—</strong><small>Selected mode</small></div><span class="chip" id="effective">—</span></div></article>
+          <article class="panel summary-card"><div class="panel-label">Brightness</div><div class="summary-row"><span class="summary-icon" aria-hidden="true">☼</span><div><strong><span id="brightnessText">—</span></strong><small>Normal LED level</small></div></div><div class="level-track" aria-hidden="true"><span id="brightnessTrack"></span></div></article>
+          <article class="panel weather-card"><div class="panel-label">Weather</div><div class="weather-primary"><span class="weather-icon" aria-hidden="true">☁</span><div><strong id="weatherTemperature">—</strong><span id="weatherCondition">Waiting for data</span></div></div><p id="weatherDetails">Humidity — · Wind —</p><p class="meta" id="weatherAge">Not updated</p></article>
+        </div>
+
+        <div class="overview-strip">
+          <article class="panel compact-card"><div class="panel-label">Automatic NIGHT</div><strong id="autoState">—</strong><span id="schedule">—</span></article>
+          <article class="panel compact-card"><div class="panel-label">Network status</div><strong id="wifi">Connecting</strong><span><span id="networkConfigured">—</span> · <span id="ip">—</span></span></article>
+          <article class="panel compact-card"><div class="panel-label">Diagnostics summary</div><strong id="diagnosticsSummary">Waiting</strong><span><span id="uptime">—</span> uptime · <span id="rssi">—</span></span></article>
+          <article class="panel compact-card"><div class="panel-label">OTA state</div><strong id="ota">Waiting</strong><span>Partition <span id="runningPartition">—</span></span></article>
+        </div>
+
+        <article class="panel quick-controls" aria-labelledby="quick-controls-title">
+          <div><div class="panel-label" id="quick-controls-title">Quick controls</div><p>Jump directly to the controls you need.</p></div>
+          <div class="quick-grid">
+            <button type="button" class="quick-button" data-jump="mode"><span aria-hidden="true">◷</span><span><strong>Mode</strong><small id="quickMode">—</small></span></button>
+            <button type="button" class="quick-button" data-jump="brightness"><span aria-hidden="true">☼</span><span><strong>Brightness</strong><small id="quickBrightness">—</small></span></button>
+            <button type="button" class="quick-button control" id="weatherRefreshQuick" data-control><span aria-hidden="true">☁</span><span><strong>Refresh weather</strong><small>Request current conditions</small></span></button>
+            <button type="button" class="quick-button" data-jump="network"><span aria-hidden="true">⌁</span><span><strong>Network settings</strong><small id="quickNetwork">—</small></span></button>
+          </div>
+        </article>
+      </section>
+
+      <section id="time-display" class="section" aria-labelledby="display-title">
+        <div class="section-heading"><div><p class="eyebrow">Time &amp; Display</p><h2 id="display-title">Clock presentation</h2></div><p>Selected and effective modes remain separate while automatic NIGHT is active.</p></div>
+        <div class="two-column">
+          <article class="panel form-panel"><div class="panel-label">Display controls</div><div class="form-grid">
+            <label for="mode">Selected mode<select id="mode" class="control" data-control><option>CLASSIC</option><option>MINIMAL</option><option>NIGHT</option></select></label>
+            <label for="brightness">Normal brightness<select id="brightness" class="control" data-control><option>10</option><option>25</option><option>40</option><option>80</option></select></label>
+          </div><div class="readout-grid"><div><span>Effective mode</span><strong id="effectiveDisplay">—</strong></div><div><span>Manual override</span><strong id="override">—</strong></div></div></article>
+          <article class="panel form-panel"><div class="panel-label">Automatic NIGHT schedule</div><form id="autoForm"><label class="switch-row" for="autoEnabled"><span><strong>Automatic NIGHT</strong><small>Use NIGHT rendering during the saved interval</small></span><input id="autoEnabled" class="control" data-control type="checkbox"></label><div class="form-grid"><label for="autoStart">Starts<input id="autoStart" class="control" data-control type="time" required></label><label for="autoEnd">Ends<input id="autoEnd" class="control" data-control type="time" required></label></div><button class="button primary control" data-control type="submit">Save schedule</button></form></article>
+        </div>
+      </section>
+
+      <section id="network" class="section" aria-labelledby="network-title">
+        <div class="section-heading"><div><p class="eyebrow">Network configuration</p><h2 id="network-title">DHCP &amp; static IPv4</h2></div><p>WiFiManager continues to own SSID and password provisioning.</p></div>
+        <div class="network-summary">
+          <article class="panel compact-card"><div class="panel-label">Configured mode</div><strong id="networkConfiguredDetail">—</strong><span>Saved preference</span></article>
+          <article class="panel compact-card"><div class="panel-label">Effective mode</div><strong id="networkEffective">—</strong><span id="fallbackStatus">Fallback —</span></article>
+          <article class="panel compact-card"><div class="panel-label">Active address</div><strong id="networkActive">—</strong><span>Current local interface</span></article>
+          <article class="panel compact-card"><div class="panel-label">Static failures</div><strong id="networkFailures">—</strong><span>Confirmed failed boots</span></article>
+        </div>
+        <article class="panel form-panel">
+          <div class="warning-banner" role="note"><strong>Address changes can make HALO CST unreachable.</strong><span>Save and Apply validates every field, responds to this browser, then reboots. Record the new address first.</span></div>
+          <div class="lazy-row"><p id="networkLoadState">Open this section to load the saved network configuration.</p><button type="button" class="button secondary" id="networkLoad">Load configuration</button></div>
+          <form id="networkForm">
+            <label for="networkMode">Network mode<select id="networkMode" class="control" data-control disabled><option value="DHCP">DHCP</option><option value="STATIC">Static IP</option></select></label>
+            <div id="staticNetworkFields" class="form-grid network-fields">
+              <label for="networkIp">Static IP<input id="networkIp" class="control" data-control type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50" disabled></label>
+              <label for="networkGateway">Gateway<input id="networkGateway" class="control" data-control type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1" disabled></label>
+              <label for="networkSubnet">Subnet mask<input id="networkSubnet" class="control" data-control type="text" inputmode="decimal" autocomplete="off" placeholder="255.255.255.0" disabled></label>
+              <label for="networkDns1">Primary DNS<input id="networkDns1" class="control" data-control type="text" inputmode="decimal" autocomplete="off" placeholder="1.1.1.1" disabled></label>
+              <label for="networkDns2">Secondary DNS <span>(optional)</span><input id="networkDns2" class="control" data-control type="text" inputmode="decimal" autocomplete="off" placeholder="8.8.8.8" disabled></label>
+            </div>
+            <div class="button-row"><button class="button primary control" data-control type="submit" disabled>Save and Apply</button><button id="networkReset" class="button danger control" data-control type="button" disabled>Reset to DHCP</button></div>
+          </form>
+          <details class="recovery-note"><summary>GPIO27 and USB recovery</summary><p>Within 30 seconds after startup completes, hold GPIO27 for 10 seconds to save DHCP mode and reboot. If the device remains unreachable, install known-good firmware over USB. Full-flash erase is the last resort because it removes Wi-Fi credentials and Preferences.</p></details>
+        </article>
+      </section>
+
+      <section id="weather" class="section" aria-labelledby="weather-title">
+        <div class="section-heading"><div><p class="eyebrow">Weather</p><h2 id="weather-title">Current conditions</h2></div><p>Keyless HTTPS data from Open-Meteo; cached results survive refresh failures.</p></div>
+        <article class="panel weather-detail"><div class="weather-hero"><span class="weather-icon large" aria-hidden="true">☁</span><div><strong id="weatherTemperatureDetail">—</strong><span id="weatherConditionDetail">Waiting for data</span></div></div><div class="readout-grid weather-readouts"><div><span>Feels like</span><strong id="apparentTemperature">—</strong></div><div><span>Humidity</span><strong id="humidity">—</strong></div><div><span>Wind</span><strong id="windSpeed">—</strong></div><div><span>Last update</span><strong id="weatherLastUpdate">—</strong></div></div><div class="weather-state" id="weatherState">Waiting for current conditions</div><button id="weatherRefresh" class="button primary control" data-control type="button">Refresh weather</button></article>
+      </section>
+
+      <section id="diagnostics" class="section" aria-labelledby="diagnostics-title">
+        <div class="section-heading"><div><p class="eyebrow">Diagnostics</p><h2 id="diagnostics-title">Device health</h2></div><p>Detailed diagnostics load only when requested and remain RAM-only.</p></div>
+        <details class="panel diagnostics-panel" id="diagnosticsPanel">
+          <summary><span><strong>Open diagnostic snapshot</strong><small>Heap, reset, Wi-Fi, NTP, weather, OTA, firmware, and network data</small></span><span aria-hidden="true">＋</span></summary>
+          <div class="diagnostic-overview" id="diagnosticOverview"><p>Open or refresh to load current diagnostics.</p></div>
+          <pre class="diagnostics" id="diagnosticsOutput" tabindex="0">No snapshot loaded.</pre>
+          <div class="button-row diagnostic-actions"><button id="diagnosticsRefresh" class="button secondary" type="button">Refresh</button><button id="diagnosticsCopy" class="button secondary" type="button">Copy diagnostics</button><button id="diagnosticsDownload" class="button secondary" type="button">Download diagnostics JSON</button></div>
+        </details>
+      </section>
+
+      <section id="settings" class="section" aria-labelledby="settings-title">
+        <div class="section-heading"><div><p class="eyebrow">Settings</p><h2 id="settings-title">System &amp; security</h2></div><p>HALO CST is designed for a trusted local network.</p></div>
+        <div class="two-column">
+          <article class="panel system-card"><div class="panel-label">Firmware</div><div class="readout-grid"><div><span>Version</span><strong id="firmware">—</strong></div><div><span>OTA</span><strong id="otaDetail">—</strong></div><div><span>Free heap</span><strong id="freeHeap">—</strong></div><div><span>Minimum heap</span><strong id="minimumHeap">—</strong></div></div><a class="button secondary" href="https://github.com/Zivchaos/Halo_Clock" target="_blank" rel="noreferrer">Project repository</a></article>
+          <article class="panel system-card"><div class="panel-label">Trusted-LAN security</div><p>The Web UI and ArduinoOTA service are unauthenticated. Keep HALO CST on a trusted local network and do not expose ports 80 or 3232 to the public Internet.</p><button id="reboot" class="button danger control" data-control type="button">Reboot HALO CST</button></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="feedback" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="rebootDialog"><form method="dialog"><div class="dialog-mark" aria-hidden="true">↻</div><h2>Reboot HALO CST?</h2><p>The clock and local interface will be unavailable briefly.</p><div class="dialog-actions"><button id="rebootCancel" class="button secondary" value="cancel">Cancel</button><button id="rebootConfirm" class="button danger control" data-control value="default" type="button">Reboot now</button></div></form></dialog>
+  <dialog id="networkDialog"><form method="dialog"><div class="dialog-mark warning" aria-hidden="true">!</div><h2>Confirm network change</h2><p id="networkConfirmText">The clock will reboot and its current address may stop responding.</p><div class="dialog-actions"><button id="networkCancel" class="button secondary" value="cancel">Cancel</button><button id="networkConfirm" class="button danger control" data-control value="default" type="button">Save, apply, and reboot</button></div></form></dialog>
+</body>
+</html>
