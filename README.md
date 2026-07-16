@@ -111,7 +111,25 @@ Saved application settings intentionally remain in the legacy Preferences namesp
 
 Open `http://halo-cst.local` from the same LAN. The page displays time, network state, selected and effective display modes, brightness, automatic NIGHT state, weather, OTA state, and diagnostics. It can change mode, brightness, and NIGHT schedule; request a weather refresh; download diagnostics; or request a confirmed reboot.
 
-The page polls only `/api/status` every three seconds. Diagnostics load on demand.
+The dark, responsive product interface takes its visual language from the physical octagonal clock: a cyan perimeter, centered OLED, and restrained instrument-like cards. Desktop uses a persistent section rail; phones put the live clock first and use a compact tab strip. The page polls only `/api/status` every three seconds. Diagnostics and complete network details load on demand.
+
+> **Screenshot placeholders:** desktop overview, 390 x 844 mobile overview, network configuration, and diagnostics captures will be added after browser automation is available. No mock screenshots are presented as live-device evidence.
+
+Editable Web UI sources live in `webui/`. Rebuild the flash-resident page after editing them:
+
+```sh
+python tools/build-web-assets.py
+```
+
+See [docs/WEB_UI_DESIGN.md](docs/WEB_UI_DESIGN.md) for the responsive layout, accessibility decisions, API usage, and asset-generation rules. Brand SVGs and usage guidance are under `assets/branding/`.
+
+## The Story Behind HALO CST
+
+HALO CST began as an experiment in building a connected LED clock. The first idea was circular, but the practical prototype became octagonal: eight frame pieces of approximately 12.5 cm make a body around 32 x 32 cm, and a one-metre 60 LEDs/m strip follows that perimeter cleanly. The OLED sits at the center with the physical button beneath it. What started as a fabrication compromise became the clock's defining identity.
+
+The software followed the same path from experiment to useful timepiece. A synchronized clock gained display modes, automatic NIGHT, weather, OTA updates, a local Web UI, network configuration, and diagnostics while keeping the physical clock at the center of the experience.
+
+> **Prototype photo placeholder:** add photographs of the octagonal frame and centered OLED/button assembly after the mechanical prototype is ready for publication. The enclosure and centered assembly remain prototype work, not a finalized production design.
 
 ## OTA update workflow
 
@@ -212,9 +230,11 @@ The validated `esp32dev` release-candidate build uses **54,740 bytes RAM** and *
 ```text
 include/                 Central hardware, behavior, and product metadata
 src/                     Firmware services and renderers
+webui/                   Editable HTML, CSS, and JavaScript source
+assets/branding/          HALO CST vector marks and style guide
 test/                    PlatformIO embedded tests
 tools/                   API, weather, soak, and release-audit scripts
-docs/                    Architecture, wiring, and partition guidance
+docs/                    Architecture, wiring, partitions, and UI design
 .github/                 CI, issue forms, and pull-request template
 partitions_halo_4mb.csv  Dual-OTA 4 MiB partition layout
 platformIO.ini           Build and test environments
