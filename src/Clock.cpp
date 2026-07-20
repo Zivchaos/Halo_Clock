@@ -99,6 +99,11 @@ void Clock::showWeather(const WeatherData& weather)
     Oled::weather(weather, activeDisplayMode);
 }
 
+void Clock::requestRefresh()
+{
+    renderRefreshPending = true;
+}
+
 void Clock::update(bool renderEnabled)
 {
     TimeService::update();

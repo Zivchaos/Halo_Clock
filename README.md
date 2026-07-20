@@ -11,7 +11,7 @@ The LED ring presents time at a glance while the OLED shows exact local time, te
 ## Features
 
 - NTP-synchronized local time with a configurable POSIX timezone
-- CLASSIC, MINIMAL, and NIGHT display modes
+- CLASSIC, MINIMAL, NIGHT, and customizable LED-color display modes
 - Scheduled automatic NIGHT mode with manual override
 - Four persistent normal brightness levels
 - Configurable 60-LED orientation mapping
@@ -149,14 +149,14 @@ An ordinary OTA update cannot safely replace a device’s partition table. The f
 
 ## Weather configuration
 
-Open-Meteo provides keyless current conditions over HTTPS. Configure `WEATHER_LATITUDE`, `WEATHER_LONGITUDE`, temperature units, wind units, timeouts, refresh interval, backoff, and stale age in `include/Config.h`.
+Open-Meteo provides keyless current conditions over HTTPS. Latitude and longitude can be changed from the Web UI and are saved in the existing Preferences namespace. `WEATHER_LATITUDE` and `WEATHER_LONGITUDE` in `include/Config.h` remain the fresh-install defaults; units, timeouts, refresh interval, backoff, and stale age remain centralized there.
 
 The checked-in coordinates are a public example near Greenwich, UK—not a contributor’s private location. Replace them with the installation’s WGS84 coordinates. Weather data is kept in RAM only; a failed refresh never clears the last valid cache.
 
 ## Button controls
 
 - Short press: cycle normal LED brightness through 10, 25, 40, and 80.
-- Long press: cycle CLASSIC → MINIMAL → NIGHT → CLASSIC.
+- Long press: cycle CLASSIC → MINIMAL → NIGHT → CUSTOM → CLASSIC.
 - A long press does not generate an additional short press on release.
 
 The button is active-low on GPIO27 and uses the ESP32 internal pull-up.
@@ -166,8 +166,11 @@ The button is active-low on GPIO27 and uses the ESP32 internal pull-up.
 - **CLASSIC:** hour ticks, minute progress, hour marker, second marker, and full digital OLED time.
 - **MINIMAL:** hour, minute, and second markers with large `HH:MM` on OLED.
 - **NIGHT:** fixed low LED brightness, hour/minute markers only, and reduced OLED contrast.
+- **CUSTOM:** CLASSIC-style ticks, progress, and markers using six user-selected LED colors from the Web UI.
 
 Selected mode and normal brightness are saved. NIGHT’s fixed brightness never overwrites the saved normal brightness.
+
+The Web UI also exposes persistent ring-orientation calibration. Choose the physical LED representing 12 o'clock, select clockwise or counterclockwise progression, and use the temporary four-color cardinal test before saving and returning to the clock. The same mapping remains shared by every display mode.
 
 ## Automatic NIGHT
 

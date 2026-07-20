@@ -15,9 +15,14 @@ namespace
     }
 }
 
-bool WeatherProvider::buildRequestUrl(char* destination, size_t size)
+bool WeatherProvider::buildRequestUrl(
+    char* destination,
+    size_t size,
+    float latitude,
+    float longitude)
 {
-    if (destination == nullptr || size == 0)
+    if (destination == nullptr || size == 0 || !std::isfinite(latitude) || !std::isfinite(longitude) ||
+        latitude < -90.0F || latitude > 90.0F || longitude < -180.0F || longitude > 180.0F)
     {
         return false;
     }
@@ -27,8 +32,8 @@ bool WeatherProvider::buildRequestUrl(char* destination, size_t size)
         size,
         "%s?latitude=%.4f&longitude=%.4f&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&temperature_unit=%s&wind_speed_unit=%s",
         Config::WEATHER_API_URL,
-        static_cast<double>(Config::WEATHER_LATITUDE),
-        static_cast<double>(Config::WEATHER_LONGITUDE),
+        static_cast<double>(latitude),
+        static_cast<double>(longitude),
         Config::WEATHER_TEMPERATURE_UNIT,
         Config::WEATHER_WIND_SPEED_UNIT);
     return written > 0 && static_cast<size_t>(written) < size;

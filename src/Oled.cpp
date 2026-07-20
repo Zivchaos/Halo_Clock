@@ -62,7 +62,7 @@ void Oled::time(const tm& localTime, DisplayMode mode)
     oled.clearBuffer();
     oled.setContrast(mode == DisplayMode::NIGHT ? Config::NIGHT_OLED_CONTRAST : 255);
 
-    if (mode == DisplayMode::CLASSIC)
+    if (mode == DisplayMode::CLASSIC || mode == DisplayMode::CUSTOM)
     {
         oled.setFont(u8g2_font_logisoso20_tn);
         centerText(timeText, 31);

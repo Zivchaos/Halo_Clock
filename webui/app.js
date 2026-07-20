@@ -6,6 +6,7 @@ const state = {
   busy: false,
   diagnostics: null,
   networkLoaded: false,
+  customizationLoaded: false,
   networkAction: "save",
   pollFailures: 0,
   statusInFlight: false,
@@ -40,9 +41,12 @@ function showFeedback(message, kind = "success") {
 }
 
 function syncControlState() {
-    document.querySelectorAll("[data-control]").forEach((control) => {
+  document.querySelectorAll("[data-control]").forEach((control) => {
     const isNetworkControl = $("networkForm").contains(control) || control.id === "networkReset";
     control.disabled = state.busy || (isNetworkControl && !state.networkLoaded);
+  });
+  document.querySelectorAll("[data-custom-control]").forEach((control) => {
+    control.disabled = state.busy || !state.customizationLoaded;
   });
   if (state.networkLoaded) toggleStaticFields();
 }
@@ -257,6 +261,41 @@ async function loadNetwork(force = false) {
   }
 }
 
+async function loadCustomization() {
+  try {
+    const settings = await api("/api/customization");
+    const calibration = settings.calibration || {};
+    const location = settings.weatherLocation || {};
+    const colors = settings.customColors || {};
+    $("calibrationOffset").value = String(calibration.zeroOffset ?? 0);
+    $("calibrationDirection").value = String(calibration.clockwise !== false);
+    $("weatherLatitude").value = Number(location.latitude).toFixed(4);
+    $("weatherLongitude").value = Number(location.longitude).toFixed(4);
+    const colorFields = {
+      colorHourTicks: "hourTicks", colorMinuteProgress: "minuteProgress",
+      colorHourCenter: "hourCenter", colorHourSides: "hourSides",
+      colorMinuteMarker: "minuteMarker", colorSecondMarker: "secondMarker"
+    };
+    Object.entries(colorFields).forEach(([id, key]) => {
+      if (/^#[0-9a-f]{6}$/i.test(colors[key] || "")) $(id).value = colors[key];
+    });
+    state.customizationLoaded = true;
+    syncControlState();
+  } catch (error) {
+    state.customizationLoaded = false;
+    syncControlState();
+    showFeedback(`Customization unavailable: ${error.message}`, "error");
+  }
+}
+
+function calibrationData(active) {
+  return {
+    zeroOffset: $("calibrationOffset").value,
+    clockwise: $("calibrationDirection").value,
+    active: String(active)
+  };
+}
+
 function showNetworkConfirmation(action) {
   state.networkAction = action;
   text("networkConfirmText", action === "reset" ? "Reset the saved network mode to DHCP and reboot? Saved static addressing will be replaced." : "Save these settings and reboot? The current address may stop responding.");
@@ -316,6 +355,32 @@ $("autoForm").addEventListener("submit", (event) => {
   void post("/api/auto-night", { enabled: String($("autoEnabled").checked), startHour: start[0] || "", startMinute: start[1] || "", endHour: end[0] || "", endMinute: end[1] || "" }, "Automatic NIGHT schedule saved");
 });
 
+$("customColorForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void post("/api/custom-colors", {
+    hourTicks: $("colorHourTicks").value,
+    minuteProgress: $("colorMinuteProgress").value,
+    hourCenter: $("colorHourCenter").value,
+    hourSides: $("colorHourSides").value,
+    minuteMarker: $("colorMinuteMarker").value,
+    secondMarker: $("colorSecondMarker").value
+  }, "CUSTOM colors saved");
+});
+$("calibrationTest").addEventListener("click", () => {
+  void post("/api/calibration", calibrationData(true), "Calibration test active");
+});
+$("calibrationForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void post("/api/calibration", calibrationData(false), "Ring calibration saved; clock restored");
+});
+$("weatherLocationForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void post("/api/weather/location", {
+    latitude: $("weatherLatitude").value,
+    longitude: $("weatherLongitude").value
+  }, "Weather location saved; refresh scheduled");
+});
+
 $("networkLoad").addEventListener("click", () => { void loadNetwork(true); });
 $("networkMode").addEventListener("change", toggleStaticFields);
 $("networkForm").addEventListener("submit", (event) => { event.preventDefault(); showNetworkConfirmation("save"); });
@@ -337,6 +402,7 @@ $("rebootConfirm").addEventListener("click", () => {
 
 syncControlState();
 void refreshStatus();
+void loadCustomization();
 window.setInterval(refreshStatus, POLL_INTERVAL_MS);
 
 }

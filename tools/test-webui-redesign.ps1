@@ -39,6 +39,9 @@ Assert-Ui (($html -match 'Selected mode') -and ($html -match 'Effective mode')) 
 Assert-Ui ($html -match 'Automatic NIGHT') "automatic NIGHT controls exist"
 Assert-Ui (($html -match 'GPIO27') -and ($html -match 'USB recovery')) "network recovery guidance exists"
 Assert-Ui (($html -match 'Copy diagnostics') -and ($html -match 'Download diagnostics JSON')) "diagnostics actions exist"
+Assert-Ui (($html -match '<option>CUSTOM</option>') -and ($html -match 'customColorForm')) "CUSTOM color controls exist"
+Assert-Ui ($html -match 'calibrationForm') "ring calibration controls exist"
+Assert-Ui (($html -match 'weatherLocationForm') -and ($html -match 'open-meteo\.com')) "weather location and provider link exist"
 Assert-Ui (($html -match '<label') -and ($html -notmatch '<button[^>]*>\s*</button>')) "forms and buttons have visible labels"
 
 Assert-Ui ($css -match ':focus-visible') "visible focus styles exist"
@@ -54,6 +57,7 @@ Assert-Ui ($js -match 'statusInFlight') "overlapping status polls are suppressed
 Assert-Ui ($js -match 'diagnosticsPanel.+toggle') "diagnostics load is tied to panel demand"
 Assert-Ui ($js -match 'api\("/api/diagnostics"\)') "diagnostics endpoint is used"
 Assert-Ui ($js -match 'api\("/api/network"\)') "network details are fetched on demand"
+Assert-Ui ($js -match 'api\("/api/customization"\)') "customization settings load once outside status polling"
 Assert-Ui ($js -match 'catch\s*\(') "request errors are handled"
 Assert-Ui ($js -notmatch 'https?://[^"'']+\.(js|css|woff2?)') "no external UI library or font requests exist"
 Assert-Ui ($js -notmatch '\balert\s*\(') "no blocking alert is used"

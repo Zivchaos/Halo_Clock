@@ -6,6 +6,7 @@
 #include "Clock.h"
 #include "Config.h"
 #include "DiagnosticsService.h"
+#include "Hardware.h"
 #include "Ledring.h"
 #include "NetworkService.h"
 #include "Oled.h"
@@ -19,6 +20,8 @@
 
 namespace
 {
+    bool ringCalibrationActive = false;
+    bool otaDisplayWasReserved = false;
     void logDisplayMode(DisplayMode mode)
     {
         Serial.printf("DISPLAY MODE: %s\r\n", DisplayModes::name(mode));
@@ -28,6 +31,8 @@ namespace
 void Halo::begin()
 {
     Serial.begin(Config::SERIAL_BAUD);
+    ringCalibrationActive = false;
+    otaDisplayWasReserved = false;
     DiagnosticsService::begin();
     SettingsService::begin();
     Button::begin();
@@ -40,6 +45,8 @@ void Halo::begin()
     Oled::status(Product::NAME, "READY");
     delay(400);
     LedRing::begin(SettingsService::brightness());
+    LedRing::setRingCalibration(SettingsService::ringCalibration());
+    LedRing::setCustomColors(SettingsService::customColors());
     LedRing::bootAnimation();
     delay(200);
     const DisplayMode selectedDisplayMode = SettingsService::displayMode();
@@ -76,11 +83,18 @@ void Halo::begin()
 void Halo::update()
 {
     OtaService::update();
+    const bool otaDisplayReserved = OtaService::isDisplayReserved();
+    if (ringCalibrationActive && otaDisplayWasReserved && !otaDisplayReserved)
+    {
+        Oled::status("RING CALIBRATION", "0  15  30  45");
+        LedRing::showCalibrationTest();
+    }
+    otaDisplayWasReserved = otaDisplayReserved;
     WeatherService::update();
     WebService::update();
     if constexpr (Config::ENABLE_WEATHER_OLED)
     {
-        if (!OtaService::isDisplayReserved() &&
+        if (!otaDisplayReserved && !ringCalibrationActive &&
             WeatherService::consumeDisplayUpdate())
         {
             Clock::showWeather(WeatherService::snapshot());
@@ -105,7 +119,7 @@ void Halo::update()
 
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
-        Clock::update(!OtaService::isDisplayReserved());
+        Clock::update(!otaDisplayReserved && !ringCalibrationActive);
     }
 
     NetworkService::update();
@@ -143,4 +157,35 @@ bool Halo::setDisplayMode(DisplayMode mode)
         Clock::setSelectedDisplayMode(mode);
     }
     return true;
+}
+
+bool Halo::setRingCalibration(const RingCalibrationSettings& settings, bool testActive)
+{
+    if (settings.zeroOffset >= Hardware::LED_COUNT) return false;
+    if (!testActive && !SettingsService::saveRingCalibration(settings)) return false;
+    LedRing::setRingCalibration(settings);
+    ringCalibrationActive = testActive;
+    if (testActive)
+    {
+        Oled::status("RING CALIBRATION", "0  15  30  45");
+        LedRing::showCalibrationTest();
+    }
+    else
+    {
+        Clock::requestRefresh();
+    }
+    return true;
+}
+
+bool Halo::setCustomColors(const CustomColorSettings& settings)
+{
+    if (!SettingsService::saveCustomColors(settings)) return false;
+    LedRing::setCustomColors(settings);
+    Clock::requestRefresh();
+    return true;
+}
+
+bool Halo::isRingCalibrationActive()
+{
+    return ringCalibrationActive;
 }
