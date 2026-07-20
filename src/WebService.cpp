@@ -4,12 +4,15 @@
 #include <ArduinoJson.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <cmath>
+#include <cstdlib>
 
 #include "AutoNightService.h"
 #include "Clock.h"
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "Halo.h"
+#include "Hardware.h"
 #include "NetworkConfig.h"
 #include "NetworkService.h"
 #include "OtaService.h"
@@ -103,6 +106,46 @@ namespace
         Serial.println("WEB REQUEST: GET /");
         server.sendHeader("Cache-Control", "no-store");
         server.send_P(200, "text/html; charset=utf-8", WebUiAssets::INDEX_HTML);
+    }
+
+    bool parseFloatArgument(const char* name, float minimum, float maximum, float& result)
+    {
+        if (!server.hasArg(name)) return false;
+        const String value = server.arg(name);
+        if (value.isEmpty()) return false;
+        char* end = nullptr;
+        const float parsed = std::strtof(value.c_str(), &end);
+        if (end == value.c_str() || *end != '\0' || !std::isfinite(parsed) || parsed < minimum || parsed > maximum)
+        {
+            return false;
+        }
+        result = parsed;
+        return true;
+    }
+
+    bool parseColorArgument(const char* name, RgbColor& result)
+    {
+        if (!server.hasArg(name)) return false;
+        const String value = server.arg(name);
+        if (value.length() != 7 || value[0] != '#') return false;
+        char* end = nullptr;
+        const unsigned long parsed = std::strtoul(value.c_str() + 1, &end, 16);
+        if (end != value.c_str() + 7 || *end != '\0') return false;
+        for (size_t index = 1; index < 7; ++index)
+        {
+            const char c = value[index];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) return false;
+        }
+        result = {
+            static_cast<uint8_t>((parsed >> 16) & 0xFFU),
+            static_cast<uint8_t>((parsed >> 8) & 0xFFU),
+            static_cast<uint8_t>(parsed & 0xFFU)};
+        return true;
+    }
+
+    void colorText(const RgbColor& color, char destination[8])
+    {
+        snprintf(destination, 8, "#%02X%02X%02X", color.red, color.green, color.blue);
     }
 
     void handleFavicon()
@@ -288,6 +331,109 @@ namespace
         }
     }
 
+    void handleCustomizationGet()
+    {
+        const RingCalibrationSettings& calibration = SettingsService::ringCalibration();
+        const WeatherLocationSettings& location = SettingsService::weatherLocation();
+        const CustomColorSettings& colors = SettingsService::customColors();
+        JsonDocument document;
+        JsonObject calibrationJson = document["calibration"].to<JsonObject>();
+        calibrationJson["zeroOffset"] = calibration.zeroOffset;
+        calibrationJson["clockwise"] = calibration.clockwise;
+        calibrationJson["active"] = Halo::isRingCalibrationActive();
+        JsonObject locationJson = document["weatherLocation"].to<JsonObject>();
+        locationJson["latitude"] = location.latitude;
+        locationJson["longitude"] = location.longitude;
+        JsonObject colorsJson = document["customColors"].to<JsonObject>();
+        char colorValue[8];
+        colorText(colors.hourTicks, colorValue); colorsJson["hourTicks"] = colorValue;
+        colorText(colors.minuteProgress, colorValue); colorsJson["minuteProgress"] = colorValue;
+        colorText(colors.hourCenter, colorValue); colorsJson["hourCenter"] = colorValue;
+        colorText(colors.hourSides, colorValue); colorsJson["hourSides"] = colorValue;
+        colorText(colors.minuteMarker, colorValue); colorsJson["minuteMarker"] = colorValue;
+        colorText(colors.secondMarker, colorValue); colorsJson["secondMarker"] = colorValue;
+        String body;
+        body.reserve(480);
+        serializeJson(document, body);
+        server.sendHeader("Cache-Control", "no-store");
+        server.send(200, "application/json", body);
+    }
+
+    void handleCalibration()
+    {
+        Serial.println("WEB REQUEST: POST /api/calibration");
+        if (!changesAllowed()) return;
+        uint8_t zeroOffset = 0;
+        if (!parseByteArgument("zeroOffset", Hardware::LED_COUNT - 1U, zeroOffset) ||
+            !server.hasArg("clockwise") || !server.hasArg("active"))
+        {
+            sendError(400, "invalid calibration settings");
+            return;
+        }
+        const String clockwiseValue = server.arg("clockwise");
+        const String activeValue = server.arg("active");
+        if ((clockwiseValue != "true" && clockwiseValue != "false") ||
+            (activeValue != "true" && activeValue != "false"))
+        {
+            sendError(400, "invalid calibration settings");
+            return;
+        }
+        const RingCalibrationSettings settings = {zeroOffset, clockwiseValue == "true"};
+        if (!Halo::setRingCalibration(settings, activeValue == "true"))
+        {
+            sendError(500, "calibration settings could not be saved");
+            return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
+    void handleWeatherLocation()
+    {
+        Serial.println("WEB REQUEST: POST /api/weather/location");
+        if (!changesAllowed()) return;
+        WeatherLocationSettings settings = {};
+        if (!parseFloatArgument("latitude", -90.0F, 90.0F, settings.latitude) ||
+            !parseFloatArgument("longitude", -180.0F, 180.0F, settings.longitude))
+        {
+            sendError(400, "invalid weather coordinates");
+            return;
+        }
+        if (WeatherService::snapshot().updating)
+        {
+            sendError(409, "weather request already in progress");
+            return;
+        }
+        if (!SettingsService::saveWeatherLocation(settings) || !WeatherService::locationChanged())
+        {
+            sendError(500, "weather location could not be applied");
+            return;
+        }
+        sendJson(200, "{\"ok\":true,\"refreshScheduled\":true}");
+    }
+
+    void handleCustomColors()
+    {
+        Serial.println("WEB REQUEST: POST /api/custom-colors");
+        if (!changesAllowed()) return;
+        CustomColorSettings settings = {};
+        if (!parseColorArgument("hourTicks", settings.hourTicks) ||
+            !parseColorArgument("minuteProgress", settings.minuteProgress) ||
+            !parseColorArgument("hourCenter", settings.hourCenter) ||
+            !parseColorArgument("hourSides", settings.hourSides) ||
+            !parseColorArgument("minuteMarker", settings.minuteMarker) ||
+            !parseColorArgument("secondMarker", settings.secondMarker))
+        {
+            sendError(400, "invalid custom color");
+            return;
+        }
+        if (!Halo::setCustomColors(settings))
+        {
+            sendError(500, "custom colors could not be saved");
+            return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
     void handleMode()
     {
         Serial.println("WEB REQUEST: POST /api/mode");
@@ -303,6 +449,7 @@ namespace
         if (value == "CLASSIC") mode = DisplayMode::CLASSIC;
         else if (value == "MINIMAL") mode = DisplayMode::MINIMAL;
         else if (value == "NIGHT") mode = DisplayMode::NIGHT;
+        else if (value == "CUSTOM") mode = DisplayMode::CUSTOM;
         else
         {
             sendError(400, "invalid mode");
@@ -526,6 +673,7 @@ namespace
         server.on("/favicon.svg", HTTP_GET, handleFavicon);
         server.on("/api/status", HTTP_GET, handleStatus);
         server.on("/api/diagnostics", HTTP_GET, handleDiagnostics);
+        server.on("/api/customization", HTTP_GET, handleCustomizationGet);
         server.on("/api/network", HTTP_GET, handleNetworkGet);
         server.on("/api/network", HTTP_POST, handleNetworkSave);
         server.on("/api/network/reset", HTTP_POST, handleNetworkReset);
@@ -533,6 +681,9 @@ namespace
         server.on("/api/brightness", HTTP_POST, handleBrightness);
         server.on("/api/auto-night", HTTP_POST, handleAutoNight);
         server.on("/api/weather/refresh", HTTP_POST, handleWeatherRefresh);
+        server.on("/api/weather/location", HTTP_POST, handleWeatherLocation);
+        server.on("/api/calibration", HTTP_POST, handleCalibration);
+        server.on("/api/custom-colors", HTTP_POST, handleCustomColors);
         server.on("/api/reboot", HTTP_POST, handleReboot);
         server.onNotFound([]() {
             Serial.printf("WEB REQUEST: %s %s\r\n", server.method() == HTTP_POST ? "POST" : "GET", server.uri().c_str());

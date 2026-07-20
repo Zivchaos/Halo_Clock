@@ -13,6 +13,7 @@ public:
 
     static void setSelectedDisplayMode(DisplayMode mode);
     static void showWeather(const WeatherData& weather);
+    static void requestRefresh();
 
     static DisplayMode selectedMode();
     static DisplayMode effectiveMode();

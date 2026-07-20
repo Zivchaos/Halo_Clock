@@ -95,10 +95,24 @@
         <div class="section-heading"><div><p class="eyebrow">Time &amp; Display</p><h2 id="display-title">Clock presentation</h2></div><p>Selected and effective modes remain separate while automatic NIGHT is active.</p></div>
         <div class="two-column">
           <article class="panel form-panel"><div class="panel-label">Display controls</div><div class="form-grid">
-            <label for="mode">Selected mode<select id="mode" class="control" data-control><option>CLASSIC</option><option>MINIMAL</option><option>NIGHT</option></select></label>
+            <label for="mode">Selected mode<select id="mode" class="control" data-control><option>CLASSIC</option><option>MINIMAL</option><option>NIGHT</option><option>CUSTOM</option></select></label>
             <label for="brightness">Normal brightness<select id="brightness" class="control" data-control><option>10</option><option>25</option><option>40</option><option>80</option></select></label>
           </div><div class="readout-grid"><div><span>Effective mode</span><strong id="effectiveDisplay">—</strong></div><div><span>Manual override</span><strong id="override">—</strong></div></div></article>
           <article class="panel form-panel"><div class="panel-label">Automatic NIGHT schedule</div><form id="autoForm"><label class="switch-row" for="autoEnabled"><span><strong>Automatic NIGHT</strong><small>Use NIGHT rendering during the saved interval</small></span><input id="autoEnabled" class="control" data-control type="checkbox"></label><div class="form-grid"><label for="autoStart">Starts<input id="autoStart" class="control" data-control type="time" required></label><label for="autoEnd">Ends<input id="autoEnd" class="control" data-control type="time" required></label></div><button class="button primary control" data-control type="submit">Save schedule</button></form></article>
+        </div>
+        <div class="two-column customization-grid">
+          <article class="panel form-panel"><div class="panel-label">CUSTOM LED colors</div><p class="form-intro">CUSTOM keeps the familiar clock structure while applying your saved colors.</p><form id="customColorForm"><div class="color-grid">
+            <label for="colorHourTicks">Hour ticks<input id="colorHourTicks" data-custom-control type="color" value="#121212" disabled></label>
+            <label for="colorMinuteProgress">Minute progress<input id="colorMinuteProgress" data-custom-control type="color" value="#505000" disabled></label>
+            <label for="colorHourCenter">Hour center<input id="colorHourCenter" data-custom-control type="color" value="#ff5000" disabled></label>
+            <label for="colorHourSides">Hour sides<input id="colorHourSides" data-custom-control type="color" value="#501900" disabled></label>
+            <label for="colorMinuteMarker">Minute marker<input id="colorMinuteMarker" data-custom-control type="color" value="#505000" disabled></label>
+            <label for="colorSecondMarker">Second marker<input id="colorSecondMarker" data-custom-control type="color" value="#0078ff" disabled></label>
+          </div><button class="button primary" data-custom-control type="submit" disabled>Save CUSTOM colors</button></form></article>
+          <article class="panel form-panel"><div class="panel-label">LED ring calibration</div><p class="form-intro">Map logical 12 o'clock to the physical ring. Test mode pauses clock rendering until you save and exit.</p><form id="calibrationForm"><div class="form-grid">
+            <label for="calibrationOffset">12 o'clock LED<input id="calibrationOffset" data-custom-control type="number" min="0" max="59" step="1" value="0" disabled></label>
+            <label for="calibrationDirection">Direction<select id="calibrationDirection" data-custom-control disabled><option value="true">Clockwise</option><option value="false">Counterclockwise</option></select></label>
+          </div><div class="calibration-key"><span><i class="key-white"></i>12</span><span><i class="key-red"></i>3</span><span><i class="key-green"></i>6</span><span><i class="key-blue"></i>9</span></div><div class="button-row"><button id="calibrationTest" class="button secondary" data-custom-control type="button" disabled>Test cardinal LEDs</button><button class="button primary" data-custom-control type="submit" disabled>Save and exit test</button></div></form></article>
         </div>
       </section>
 
@@ -131,6 +145,7 @@
       <section id="weather" class="section" aria-labelledby="weather-title">
         <div class="section-heading"><div><p class="eyebrow">Weather</p><h2 id="weather-title">Current conditions</h2></div><p>Keyless HTTPS data from Open-Meteo; cached results survive refresh failures.</p></div>
         <article class="panel weather-detail"><div class="weather-hero"><span class="weather-icon large" aria-hidden="true">☁</span><div><strong id="weatherTemperatureDetail">—</strong><span id="weatherConditionDetail">Waiting for data</span></div></div><div class="readout-grid weather-readouts"><div><span>Feels like</span><strong id="apparentTemperature">—</strong></div><div><span>Humidity</span><strong id="humidity">—</strong></div><div><span>Wind</span><strong id="windSpeed">—</strong></div><div><span>Last update</span><strong id="weatherLastUpdate">—</strong></div></div><div class="weather-state" id="weatherState">Waiting for current conditions</div><button id="weatherRefresh" class="button primary control" data-control type="button">Refresh weather</button></article>
+        <article class="panel form-panel weather-location-panel"><div><div class="panel-label">Weather location</div><p class="form-intro">Enter WGS84 coordinates. Conditions are provided by Open-Meteo without an API key.</p></div><form id="weatherLocationForm"><div class="form-grid"><label for="weatherLatitude">Latitude<input id="weatherLatitude" data-custom-control type="number" min="-90" max="90" step="0.0001" disabled></label><label for="weatherLongitude">Longitude<input id="weatherLongitude" data-custom-control type="number" min="-180" max="180" step="0.0001" disabled></label></div><div class="button-row"><button class="button primary" data-custom-control type="submit" disabled>Save location and refresh</button><a class="button secondary" href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open Open-Meteo</a></div></form></article>
       </section>
 
       <section id="diagnostics" class="section" aria-labelledby="diagnostics-title">

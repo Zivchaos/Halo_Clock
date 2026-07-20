@@ -66,6 +66,10 @@ The browser regularly requests only `GET /api/status`, approximately once every 
 | Change display mode | `POST /api/mode` |
 | Change brightness | `POST /api/brightness` |
 | Change NIGHT settings | `POST /api/auto-night` |
+| Load calibration, location, and colors | `GET /api/customization` |
+| Preview/save ring orientation | `POST /api/calibration` |
+| Save CUSTOM LED colors | `POST /api/custom-colors` |
+| Save weather coordinates | `POST /api/weather/location` |
 | Save/apply network | `POST /api/network` |
 | Reset network mode | `POST /api/network/reset` |
 | Refresh weather | `POST /api/weather/refresh` |

@@ -25,7 +25,11 @@ enum class WeatherParseResult : uint8_t
 class WeatherProvider
 {
 public:
-    static bool buildRequestUrl(char* destination, size_t size);
+    static bool buildRequestUrl(
+        char* destination,
+        size_t size,
+        float latitude,
+        float longitude);
     static WeatherParseResult parseResponse(
         const char* payload,
         size_t length,

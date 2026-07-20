@@ -12,6 +12,10 @@ namespace
     size_t brightnessIndex = 0;
     uint8_t selectedBrightness = Hardware::LED_BRIGHTNESS;
     DisplayMode activeDisplayMode = DisplayMode::CLASSIC;
+    RingCalibrationSettings calibration = {Config::LED_ZERO_OFFSET, Config::LED_CLOCKWISE};
+    CustomColorSettings customColors = {
+        {18, 18, 18}, {80, 80, 0}, {255, 80, 0},
+        {80, 25, 0}, {80, 80, 0}, {0, 120, 255}};
 
     static_assert(Config::LED_ZERO_OFFSET < Hardware::LED_COUNT, "LED_ZERO_OFFSET must select an existing LED");
 
@@ -23,12 +27,17 @@ namespace
             normalized += Hardware::LED_COUNT;
         }
 
-        if (!Config::LED_CLOCKWISE)
+        if (!calibration.clockwise)
         {
             normalized = (Hardware::LED_COUNT - normalized) % Hardware::LED_COUNT;
         }
 
-        return (Config::LED_ZERO_OFFSET + normalized) % Hardware::LED_COUNT;
+        return (calibration.zeroOffset + normalized) % Hardware::LED_COUNT;
+    }
+
+    uint32_t color(const RgbColor& value)
+    {
+        return strip.Color(value.red, value.green, value.blue);
     }
 
     void setLogicalPixel(int16_t logicalIndex, uint32_t color)
@@ -131,6 +140,19 @@ void LedRing::showCalibrationTest()
     Serial.printf("[CAL] logical 45 ( 9 o'clock, blue)  -> physical %u\r\n", logicalToPhysicalIndex(45));
 }
 
+void LedRing::setRingCalibration(const RingCalibrationSettings& settings)
+{
+    if (settings.zeroOffset < Hardware::LED_COUNT)
+    {
+        calibration = settings;
+    }
+}
+
+void LedRing::setCustomColors(const CustomColorSettings& settings)
+{
+    customColors = settings;
+}
+
 void LedRing::showOtaProgress(uint8_t percent)
 {
     const uint8_t boundedPercent = min(percent, static_cast<uint8_t>(100));
@@ -150,16 +172,20 @@ void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second, DisplayMod
 {
     strip.clear();
 
-    if (mode == DisplayMode::CLASSIC)
+    if (mode == DisplayMode::CLASSIC || mode == DisplayMode::CUSTOM)
     {
         for (uint8_t tick = 0; tick < Hardware::LED_COUNT; tick += 5)
         {
-            setLogicalPixel(tick, strip.Color(18, 18, 18));
+            setLogicalPixel(tick, mode == DisplayMode::CUSTOM ? color(customColors.hourTicks) : strip.Color(18, 18, 18));
         }
 
         for (uint8_t index = 0; index < minute; ++index)
         {
-            setLogicalPixel(index, strip.Color(80, 80, 0));
+            setLogicalPixel(index, mode == DisplayMode::CUSTOM ? color(customColors.minuteProgress) : strip.Color(80, 80, 0));
+        }
+        if (mode == DisplayMode::CUSTOM)
+        {
+            setLogicalPixel(minute, color(customColors.minuteMarker));
         }
     }
     else
@@ -168,13 +194,15 @@ void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second, DisplayMod
     }
 
     const uint8_t hourPosition = ((hour % 12) * 5 + minute / 12) % Hardware::LED_COUNT;
-    setLogicalPixel(hourPosition - 1, strip.Color(80, 25, 0));
-    setLogicalPixel(hourPosition, strip.Color(255, 80, 0));
-    setLogicalPixel(hourPosition + 1, strip.Color(80, 25, 0));
+    const uint32_t hourSideColor = mode == DisplayMode::CUSTOM ? color(customColors.hourSides) : strip.Color(80, 25, 0);
+    const uint32_t hourCenterColor = mode == DisplayMode::CUSTOM ? color(customColors.hourCenter) : strip.Color(255, 80, 0);
+    setLogicalPixel(hourPosition - 1, hourSideColor);
+    setLogicalPixel(hourPosition, hourCenterColor);
+    setLogicalPixel(hourPosition + 1, hourSideColor);
 
     if (mode != DisplayMode::NIGHT)
     {
-        setLogicalPixel(second, strip.Color(0, 120, 255));
+        setLogicalPixel(second, mode == DisplayMode::CUSTOM ? color(customColors.secondMarker) : strip.Color(0, 120, 255));
     }
     strip.show();
 }

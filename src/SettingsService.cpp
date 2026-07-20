@@ -1,6 +1,8 @@
 #include "SettingsService.h"
 
 #include <Preferences.h>
+#include <cmath>
+#include <cstring>
 #include <stddef.h>
 
 #include "Config.h"
@@ -22,9 +24,26 @@ namespace
     NetworkSettings networkSettings;
     bool networkStored = false;
     uint8_t staticFailureCount = 0;
+    RingCalibrationSettings ringCalibrationSettings = {
+        Config::LED_ZERO_OFFSET,
+        Config::LED_CLOCKWISE};
+    WeatherLocationSettings weatherLocationSettings = {
+        Config::WEATHER_LATITUDE,
+        Config::WEATHER_LONGITUDE};
+    CustomColorSettings customColorSettings = {
+        {18, 18, 18},
+        {80, 80, 0},
+        {255, 80, 0},
+        {80, 25, 0},
+        {80, 80, 0},
+        {0, 120, 255}};
 
     constexpr uint32_t NETWORK_RECORD_MAGIC = 0x484E4554UL;
     constexpr uint8_t NETWORK_RECORD_VERSION = 1;
+    constexpr uint32_t WEATHER_LOCATION_MAGIC = 0x48574C43UL;
+    constexpr uint8_t WEATHER_LOCATION_VERSION = 1;
+    constexpr uint32_t CUSTOM_COLORS_MAGIC = 0x48434C52UL;
+    constexpr uint8_t CUSTOM_COLORS_VERSION = 1;
 
     struct __attribute__((packed)) PersistedNetworkSettings
     {
@@ -41,16 +60,38 @@ namespace
         uint32_t checksum;
     };
 
-    uint32_t recordChecksum(const PersistedNetworkSettings& record)
+    struct PersistedWeatherLocation
     {
-        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&record);
+        uint32_t magic;
+        uint8_t version;
+        float latitude;
+        float longitude;
+        uint32_t checksum;
+    };
+
+    struct PersistedCustomColors
+    {
+        uint32_t magic;
+        uint8_t version;
+        CustomColorSettings colors;
+        uint32_t checksum;
+    };
+
+    uint32_t bytesChecksum(const void* data, size_t length)
+    {
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(data);
         uint32_t checksum = 2166136261UL;
-        for (size_t index = 0; index < offsetof(PersistedNetworkSettings, checksum); ++index)
+        for (size_t index = 0; index < length; ++index)
         {
             checksum ^= bytes[index];
             checksum *= 16777619UL;
         }
         return checksum;
+    }
+
+    uint32_t recordChecksum(const PersistedNetworkSettings& record)
+    {
+        return bytesChecksum(&record, offsetof(PersistedNetworkSettings, checksum));
     }
 
     void copyAddress(uint8_t destination[4], const IPv4Address& source)
@@ -115,6 +156,13 @@ namespace
     {
         return storageReady && preferences.isKey(key) && preferences.getType(key) == PT_U8;
     }
+
+    bool validWeatherLocation(const WeatherLocationSettings& settings)
+    {
+        return std::isfinite(settings.latitude) && std::isfinite(settings.longitude) &&
+            settings.latitude >= -90.0F && settings.latitude <= 90.0F &&
+            settings.longitude >= -180.0F && settings.longitude <= 180.0F;
+    }
 }
 
 void SettingsService::begin()
@@ -132,6 +180,11 @@ void SettingsService::begin()
     networkSettings = NetworkConfig::defaults();
     networkStored = false;
     staticFailureCount = 0;
+    ringCalibrationSettings = {Config::LED_ZERO_OFFSET, Config::LED_CLOCKWISE};
+    weatherLocationSettings = {Config::WEATHER_LATITUDE, Config::WEATHER_LONGITUDE};
+    customColorSettings = {
+        {18, 18, 18}, {80, 80, 0}, {255, 80, 0},
+        {80, 25, 0}, {80, 80, 0}, {0, 120, 255}};
     bool settingsDefaulted = !storageReady;
 
     if (hasUnsignedByteKey(Config::SETTINGS_BRIGHTNESS_KEY))
@@ -231,6 +284,46 @@ void SettingsService::begin()
     if (hasUnsignedByteKey(Config::SETTINGS_STATIC_FAILURE_COUNT_KEY))
     {
         staticFailureCount = preferences.getUChar(Config::SETTINGS_STATIC_FAILURE_COUNT_KEY, 0);
+    }
+
+    if (hasUnsignedByteKey(Config::SETTINGS_RING_ZERO_KEY) &&
+        hasUnsignedByteKey(Config::SETTINGS_RING_CLOCKWISE_KEY))
+    {
+        const uint8_t zero = preferences.getUChar(Config::SETTINGS_RING_ZERO_KEY, Config::LED_ZERO_OFFSET);
+        const uint8_t clockwise = preferences.getUChar(
+            Config::SETTINGS_RING_CLOCKWISE_KEY,
+            Config::LED_CLOCKWISE ? 1U : 0U);
+        if (zero < Hardware::LED_COUNT && clockwise <= 1U)
+        {
+            ringCalibrationSettings = {zero, clockwise == 1U};
+        }
+    }
+
+    if (storageReady && preferences.isKey(Config::SETTINGS_WEATHER_LOCATION_KEY) &&
+        preferences.getType(Config::SETTINGS_WEATHER_LOCATION_KEY) == PT_BLOB &&
+        preferences.getBytesLength(Config::SETTINGS_WEATHER_LOCATION_KEY) == sizeof(PersistedWeatherLocation))
+    {
+        PersistedWeatherLocation record = {};
+        if (preferences.getBytes(Config::SETTINGS_WEATHER_LOCATION_KEY, &record, sizeof(record)) == sizeof(record) &&
+            record.magic == WEATHER_LOCATION_MAGIC && record.version == WEATHER_LOCATION_VERSION &&
+            record.checksum == bytesChecksum(&record, offsetof(PersistedWeatherLocation, checksum)))
+        {
+            const WeatherLocationSettings loaded = {record.latitude, record.longitude};
+            if (validWeatherLocation(loaded)) weatherLocationSettings = loaded;
+        }
+    }
+
+    if (storageReady && preferences.isKey(Config::SETTINGS_CUSTOM_COLORS_KEY) &&
+        preferences.getType(Config::SETTINGS_CUSTOM_COLORS_KEY) == PT_BLOB &&
+        preferences.getBytesLength(Config::SETTINGS_CUSTOM_COLORS_KEY) == sizeof(PersistedCustomColors))
+    {
+        PersistedCustomColors record = {};
+        if (preferences.getBytes(Config::SETTINGS_CUSTOM_COLORS_KEY, &record, sizeof(record)) == sizeof(record) &&
+            record.magic == CUSTOM_COLORS_MAGIC && record.version == CUSTOM_COLORS_VERSION &&
+            record.checksum == bytesChecksum(&record, offsetof(PersistedCustomColors, checksum)))
+        {
+            customColorSettings = record.colors;
+        }
     }
 
     Serial.println(settingsDefaulted ? "SETTINGS DEFAULTED" : "SETTINGS LOADED");
@@ -382,5 +475,85 @@ bool SettingsService::clearStaticNetworkFailures()
         return false;
     }
     staticFailureCount = 0;
+    return true;
+}
+
+const RingCalibrationSettings& SettingsService::ringCalibration()
+{
+    return ringCalibrationSettings;
+}
+
+bool SettingsService::saveRingCalibration(const RingCalibrationSettings& settings)
+{
+    if (!storageReady || settings.zeroOffset >= Hardware::LED_COUNT)
+    {
+        return false;
+    }
+    if (settings.zeroOffset == ringCalibrationSettings.zeroOffset &&
+        settings.clockwise == ringCalibrationSettings.clockwise)
+    {
+        return true;
+    }
+
+    bool saved = true;
+    if (settings.zeroOffset != ringCalibrationSettings.zeroOffset)
+    {
+        saved = preferences.putUChar(Config::SETTINGS_RING_ZERO_KEY, settings.zeroOffset) == sizeof(uint8_t) && saved;
+    }
+    if (settings.clockwise != ringCalibrationSettings.clockwise)
+    {
+        saved = preferences.putBool(Config::SETTINGS_RING_CLOCKWISE_KEY, settings.clockwise) == sizeof(uint8_t) && saved;
+    }
+    if (saved) ringCalibrationSettings = settings;
+    return saved;
+}
+
+const WeatherLocationSettings& SettingsService::weatherLocation()
+{
+    return weatherLocationSettings;
+}
+
+bool SettingsService::saveWeatherLocation(const WeatherLocationSettings& settings)
+{
+    if (!storageReady || !validWeatherLocation(settings)) return false;
+    if (settings.latitude == weatherLocationSettings.latitude &&
+        settings.longitude == weatherLocationSettings.longitude) return true;
+
+    PersistedWeatherLocation record = {};
+    record.magic = WEATHER_LOCATION_MAGIC;
+    record.version = WEATHER_LOCATION_VERSION;
+    record.latitude = settings.latitude;
+    record.longitude = settings.longitude;
+    record.checksum = bytesChecksum(&record, offsetof(PersistedWeatherLocation, checksum));
+    if (preferences.putBytes(Config::SETTINGS_WEATHER_LOCATION_KEY, &record, sizeof(record)) != sizeof(record))
+    {
+        return false;
+    }
+    weatherLocationSettings = settings;
+    Serial.printf("WEATHER LOCATION SAVED: %.4f, %.4f\r\n", static_cast<double>(settings.latitude), static_cast<double>(settings.longitude));
+    return true;
+}
+
+const CustomColorSettings& SettingsService::customColors()
+{
+    return customColorSettings;
+}
+
+bool SettingsService::saveCustomColors(const CustomColorSettings& settings)
+{
+    if (!storageReady) return false;
+    if (memcmp(&settings, &customColorSettings, sizeof(settings)) == 0) return true;
+
+    PersistedCustomColors record = {};
+    record.magic = CUSTOM_COLORS_MAGIC;
+    record.version = CUSTOM_COLORS_VERSION;
+    record.colors = settings;
+    record.checksum = bytesChecksum(&record, offsetof(PersistedCustomColors, checksum));
+    if (preferences.putBytes(Config::SETTINGS_CUSTOM_COLORS_KEY, &record, sizeof(record)) != sizeof(record))
+    {
+        return false;
+    }
+    customColorSettings = settings;
+    Serial.println("CUSTOM LED COLORS SAVED");
     return true;
 }
