@@ -56,12 +56,13 @@ Assert-Release ($platformio -match 'board_build\.partitions = partitions_halo_4m
 Assert-Release ($platformio -match '\[env:esp32dev_ota\][\s\S]*extends = env:esp32dev') "OTA build inherits the same partition table"
 Assert-Release (($partitions -match 'app0.+0x1F0000') -and ($partitions -match 'app1.+0x1F0000')) "OTA application slots are equal"
 Assert-Release ($partitions -notmatch 'spiffs') "partition table has no SPIFFS"
-Assert-Release ($readme -match 'HALO CST — Connected Smart Timepiece') "README uses repository-facing project name"
-Assert-Release ($readme -match 'Current firmware: \*\*1\.0\.0-rc1\*\*') "README displays the release-candidate version"
+Assert-Release ($readme -match '^# HALO CST') "README uses repository-facing project name"
+Assert-Release ($readme -match 'Connected Smart Timepiece') "README explains the expanded product name"
+Assert-Release ($readme -match 'firmware-1\.0\.0--rc1') "README displays the release-candidate version"
 Assert-Release ($readme -match 'halo-cst\.local') "README documents the new local hostname"
 Assert-Release ($readme -match 'HALO-CST-Setup') "README documents fresh-device setup AP"
-Assert-Release ($readme -match 'halo-clock\.local.+halo-cst\.local') "README documents hostname migration"
 Assert-Release ($readme -match 'Preferences namespace `halo-clock`') "README documents settings compatibility"
+Assert-Release ($readme -match 'docs/images/webui/overview-desktop\.png') "README includes the approved WebUI overview screenshot"
 
 $requiredFiles = @(
     "LICENSE", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md",
