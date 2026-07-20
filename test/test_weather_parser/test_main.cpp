@@ -11,7 +11,7 @@ namespace
     void testProviderBuildsCurrentConditionsUrl()
     {
         char url[512];
-        TEST_ASSERT_TRUE(WeatherProvider::buildRequestUrl(url, sizeof(url)));
+        TEST_ASSERT_TRUE(WeatherProvider::buildRequestUrl(url, sizeof(url), 51.4769F, 0.0005F));
         TEST_ASSERT_EQUAL_INT(0, strncmp(Config::WEATHER_API_URL, "https://", 8));
         TEST_ASSERT_NOT_NULL(strstr(url, Config::WEATHER_API_URL));
         TEST_ASSERT_NOT_NULL(strstr(url, "latitude="));
@@ -21,7 +21,9 @@ namespace
         TEST_ASSERT_NULL(strstr(url, "daily="));
 
         char undersized[16];
-        TEST_ASSERT_FALSE(WeatherProvider::buildRequestUrl(undersized, sizeof(undersized)));
+        TEST_ASSERT_FALSE(WeatherProvider::buildRequestUrl(undersized, sizeof(undersized), 51.4769F, 0.0005F));
+        TEST_ASSERT_FALSE(WeatherProvider::buildRequestUrl(url, sizeof(url), 91.0F, 0.0F));
+        TEST_ASSERT_FALSE(WeatherProvider::buildRequestUrl(url, sizeof(url), 0.0F, -181.0F));
     }
 
     void testValidWeatherResponse()

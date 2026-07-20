@@ -86,6 +86,17 @@ try {
     Assert-Halo ($root.Body -match "Download diagnostics JSON") "main page includes diagnostics download control"
     Assert-Halo ($root.Body -match "Network configuration") "main page includes network configuration"
     Assert-Halo ($root.Body -match "Save and Apply") "network changes require explicit Save and Apply"
+    Assert-Halo ($root.Body -match 'data-testid="octagon-clock"') "main page includes octagonal clock component"
+    Assert-Halo ($root.Body -match '<meta name="viewport"') "main page includes responsive viewport metadata"
+    Assert-Halo ($root.Body -match 'href="/favicon\.svg"') "main page references the HALO CST favicon"
+    Assert-Halo ($root.Body -match '<option>CUSTOM</option>') "main page includes CUSTOM display mode"
+    Assert-Halo ($root.Body -match 'id="calibrationForm"') "main page includes ring calibration controls"
+    Assert-Halo ($root.Body -match 'id="weatherLocationForm"') "main page includes weather location controls"
+    Assert-Halo ($root.Body -match 'https://open-meteo\.com/') "main page links to Open-Meteo"
+
+    $favicon = Invoke-HaloRequest -Method GET -Path "/favicon.svg"
+    Assert-Halo ($favicon.Status -eq 200) "GET /favicon.svg returns HTTP 200"
+    Assert-Halo ($favicon.ContentType -match "image/svg\+xml") "favicon returns SVG content type"
 
     $statusResponse = Invoke-HaloRequest -Method GET -Path "/api/status"
     Assert-Halo ($statusResponse.Status -eq 200) "GET /api/status returns HTTP 200"
@@ -95,8 +106,8 @@ try {
     $expected = @("time","wifiConnected","ip","rssi","uptimeSeconds","firmwareVersion","resetReason","runningPartition","wifiReconnectCount","ntpSynchronized","timeSyncAgeValid","lastTimeSyncAgeSeconds","weatherRequestCount","weatherSuccessCount","weatherFailureCount","selectedMode","effectiveMode","brightness","autoNightEnabled","autoNightActive","autoNightStart","autoNightEnd","manualOverride","otaReady","otaUpdating","networkConfiguredMode","networkEffectiveMode","dhcpFallbackActive","staticConnectionFailureCount","freeHeap","minimumFreeHeap","weatherAvailable","weatherStale","temperature","apparentTemperature","condition","humidity","windSpeed","weatherLastUpdate","weatherError")
     foreach ($field in $expected) { Assert-Halo ($status.PSObject.Properties.Name -contains $field) "status field $field exists" }
     Assert-Halo (@(10,25,40,80) -contains [int]$status.brightness) "status brightness is supported"
-    Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.selectedMode) "selected mode is valid"
-    Assert-Halo (@("CLASSIC","MINIMAL","NIGHT") -contains [string]$status.effectiveMode) "effective mode is valid"
+    Assert-Halo (@("CLASSIC","MINIMAL","NIGHT","CUSTOM") -contains [string]$status.selectedMode) "selected mode is valid"
+    Assert-Halo (@("CLASSIC","MINIMAL","NIGHT","CUSTOM") -contains [string]$status.effectiveMode) "effective mode is valid"
     Assert-Halo ($status.uptimeSeconds -is [ValueType]) "uptime is numeric"
     Assert-Halo ($status.wifiConnected -is [bool]) "Wi-Fi state is boolean"
     Assert-Halo ($status.weatherAvailable -is [bool]) "weather availability is boolean"
@@ -171,6 +182,33 @@ try {
     }
     $unconfirmedNetworkReset = Post-Form "/api/network/reset" @{}
     Assert-Halo ($unconfirmedNetworkReset.Status -eq 400) "unconfirmed network reset returns HTTP 400"
+
+    $customizationResponse = Invoke-HaloRequest -Method GET -Path "/api/customization"
+    Assert-Halo ($customizationResponse.Status -eq 200) "GET /api/customization returns HTTP 200"
+    $customization = $customizationResponse.Body | ConvertFrom-Json
+    foreach ($section in @("calibration","weatherLocation","customColors")) {
+        Assert-Halo ($customization.PSObject.Properties.Name -contains $section) "customization section $section exists"
+    }
+    Assert-Halo (([int]$customization.calibration.zeroOffset -ge 0) -and ([int]$customization.calibration.zeroOffset -lt 60)) "calibration offset is valid"
+    Assert-Halo ($customization.calibration.clockwise -is [bool]) "calibration direction is boolean"
+    Assert-Halo (([double]$customization.weatherLocation.latitude -ge -90) -and ([double]$customization.weatherLocation.latitude -le 90)) "weather latitude is valid"
+    Assert-Halo (([double]$customization.weatherLocation.longitude -ge -180) -and ([double]$customization.weatherLocation.longitude -le 180)) "weather longitude is valid"
+    foreach ($field in @("hourTicks","minuteProgress","hourCenter","hourSides","minuteMarker","secondMarker")) {
+        Assert-Halo ([string]$customization.customColors.$field -match '^#[0-9A-F]{6}$') "custom color $field is valid"
+    }
+    $calibrationSave = Post-Form "/api/calibration" @{zeroOffset=[string]$customization.calibration.zeroOffset;clockwise=[string]$customization.calibration.clockwise.ToString().ToLowerInvariant();active="false"}
+    Assert-Halo ($calibrationSave.Status -eq 200) "valid calibration can be saved with test disabled"
+    foreach ($invalidCalibration in @(@{zeroOffset="60";clockwise="true";active="false"}, @{zeroOffset="0";clockwise="maybe";active="false"}, @{zeroOffset="0";clockwise="true"})) {
+        $response = Post-Form "/api/calibration" $invalidCalibration
+        Assert-Halo ($response.Status -eq 400) "invalid calibration request is rejected"
+    }
+    $invalidLocation = Post-Form "/api/weather/location" @{latitude="91";longitude="0"}
+    Assert-Halo ($invalidLocation.Status -eq 400) "invalid weather coordinates are rejected"
+    $validColors = @{}
+    foreach ($field in @("hourTicks","minuteProgress","hourCenter","hourSides","minuteMarker","secondMarker")) { $validColors[$field] = [string]$customization.customColors.$field }
+    Assert-Halo ((Post-Form "/api/custom-colors" $validColors).Status -eq 200) "valid CUSTOM colors are accepted"
+    $invalidColors = $validColors.Clone(); $invalidColors["secondMarker"] = "blue"
+    Assert-Halo ((Post-Form "/api/custom-colors" $invalidColors).Status -eq 400) "invalid CUSTOM color is rejected"
     if ([bool]$status.weatherAvailable) {
         Assert-Halo ($null -ne $status.temperature) "available weather includes temperature"
         Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$status.condition)) "available weather includes condition"
@@ -189,6 +227,7 @@ try {
     Test-Mode "CLASSIC"
     Test-Mode "MINIMAL"
     Test-Mode "NIGHT"
+    Test-Mode "CUSTOM"
     $beforeInvalidMode = (Get-Status).selectedMode
     $invalidMode = Post-Form "/api/mode" @{ mode = "UNKNOWN" }
     Assert-Halo ($invalidMode.Status -eq 400) "invalid mode returns HTTP 400"

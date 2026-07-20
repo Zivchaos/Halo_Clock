@@ -14,6 +14,35 @@ struct AutoNightSettings
     uint8_t endMinute;
 };
 
+struct RingCalibrationSettings
+{
+    uint8_t zeroOffset;
+    bool clockwise;
+};
+
+struct WeatherLocationSettings
+{
+    float latitude;
+    float longitude;
+};
+
+struct RgbColor
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+};
+
+struct CustomColorSettings
+{
+    RgbColor hourTicks;
+    RgbColor minuteProgress;
+    RgbColor hourCenter;
+    RgbColor hourSides;
+    RgbColor minuteMarker;
+    RgbColor secondMarker;
+};
+
 class SettingsService
 {
 public:
@@ -30,4 +59,10 @@ public:
     static uint8_t staticNetworkFailureCount();
     static uint8_t recordStaticNetworkFailure();
     static bool clearStaticNetworkFailures();
+    static const RingCalibrationSettings& ringCalibration();
+    static bool saveRingCalibration(const RingCalibrationSettings& settings);
+    static const WeatherLocationSettings& weatherLocation();
+    static bool saveWeatherLocation(const WeatherLocationSettings& settings);
+    static const CustomColorSettings& customColors();
+    static bool saveCustomColors(const CustomColorSettings& settings);
 };

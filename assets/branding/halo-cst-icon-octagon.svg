@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">HALO CST octagonal icon</title>
+  <desc id="desc">An octagonal clock outline with a centered OLED and button.</desc>
+  <path d="M39 8h50l31 31v50l-31 31H39L8 89V39Z" fill="#0e0e0e" stroke="#22d3ee" stroke-width="6"/>
+  <rect x="37" y="46" width="54" height="30" rx="3" fill="#f2f2f2"/>
+  <path d="M47 66V55h5.5v11m7-11v11m8-11v11h6m6-11v11" fill="none" stroke="#0e0e0e" stroke-width="3" stroke-linecap="square"/>
+  <circle cx="64" cy="91" r="5" fill="#22d3ee"/>
+</svg>

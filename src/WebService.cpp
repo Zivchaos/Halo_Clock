@@ -4,12 +4,15 @@
 #include <ArduinoJson.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <cmath>
+#include <cstdlib>
 
 #include "AutoNightService.h"
 #include "Clock.h"
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "Halo.h"
+#include "Hardware.h"
 #include "NetworkConfig.h"
 #include "NetworkService.h"
 #include "OtaService.h"
@@ -17,6 +20,7 @@
 #include "TimeService.h"
 #include "Version.h"
 #include "WeatherService.h"
+#include "WebUiAssets.h"
 
 namespace
 {
@@ -24,47 +28,6 @@ namespace
     bool started = false;
     bool rebootScheduled = false;
     uint32_t rebootRequestedAt = 0;
-
-    const char INDEX_HTML[] PROGMEM = R"HALOHTML(
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>)HALOHTML" HALO_CST_PRODUCT_NAME R"HALOHTML(</title><style>
-:root{color-scheme:dark;--bg:#080d18;--panel:#121b2d;--line:#263653;--text:#f2f6ff;--muted:#9aabc7;--accent:#47b8ff;--ok:#54d69c;--bad:#ff6b7a}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#14213a,var(--bg) 45%);color:var(--text);font:16px system-ui,sans-serif}main{width:min(980px,calc(100% - 28px));margin:24px auto 48px}header{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:18px}h1{margin:0;font-size:clamp(1.8rem,5vw,3rem);letter-spacing:.08em}header p{margin:4px 0;color:var(--muted)}#clock{font:700 clamp(1.8rem,7vw,3.8rem) ui-monospace,monospace;color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:rgba(18,27,45,.94);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 32px #0004}.wide{grid-column:1/-1}h2{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.stat{padding:10px;background:#0b1322;border-radius:10px}.stat b,.stat span{display:block}.stat span{color:var(--muted);font-size:.8rem;margin-bottom:4px}.weather-now{font-size:2rem;font-weight:700;color:var(--accent);margin:0 0 4px}.weather-meta{color:var(--muted);margin:4px 0}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}label{display:block;color:var(--muted);font-size:.86rem}select,input[type=time],button{width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#0b1322;color:var(--text);padding:9px 11px;font:inherit}button{cursor:pointer;background:#173556;border-color:#2b71a3;font-weight:700}button.danger{background:#4a1d29;border-color:#9a3e50}button:disabled,select:disabled,input:disabled{opacity:.55;cursor:wait}.toggle{display:flex;align-items:center;gap:10px;min-height:44px}.toggle input{width:22px;height:22px}.feedback{min-height:24px;margin:14px 0 0;color:var(--ok)}.feedback.error{color:var(--bad)}dialog{width:min(420px,calc(100% - 32px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);padding:20px}dialog::backdrop{background:#02050acc}.dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:680px){header{display:block}.grid,.controls,.stats{grid-template-columns:1fr}.wide{grid-column:auto}main{width:min(980px,calc(100% - 18px));margin-top:14px}.card{padding:15px}}
-</style><style>details summary{cursor:pointer;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.diagnostics{margin-top:16px;padding:12px;overflow:auto;border-radius:10px;background:#08101d;color:#c9dcf8;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}.diagnostic-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.network-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.network-fields input[type=text]{width:100%;min-height:44px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#0b1322;color:var(--text);padding:9px 11px;font:inherit}.warning{color:#ffd166;border:1px solid #80682d;background:#2a2313;padding:12px;border-radius:10px}.network-actions{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:14px}@media(max-width:680px){.diagnostic-actions,.network-fields,.network-actions{grid-template-columns:1fr}}</style></head><body><main><header><div><h1>)HALOHTML" HALO_CST_PRODUCT_NAME R"HALOHTML(</h1><p>)HALOHTML" HALO_CST_EXPANDED_NAME R"HALOHTML(</p></div><div id="clock">--:--:--</div></header>
-<section class="grid"><article class="card wide"><h2>Live status</h2><div class="stats">
-<div class="stat"><span>Wi-Fi</span><b id="wifi">--</b></div><div class="stat"><span>IP address</span><b id="ip">--</b></div><div class="stat"><span>Signal</span><b id="rssi">--</b></div>
-<div class="stat"><span>Uptime</span><b id="uptime">--</b></div><div class="stat"><span>Firmware</span><b id="firmware">--</b></div><div class="stat"><span>OTA</span><b id="ota">--</b></div>
-<div class="stat"><span>Selected mode</span><b id="selected">--</b></div><div class="stat"><span>Effective mode</span><b id="effective">--</b></div><div class="stat"><span>Brightness</span><b id="brightnessText">--</b></div>
-<div class="stat"><span>Automatic NIGHT</span><b id="autoState">--</b></div><div class="stat"><span>Schedule</span><b id="schedule">--</b></div><div class="stat"><span>Manual override</span><b id="override">--</b></div>
-</div></article>
-<article class="card"><h2>Display</h2><div class="controls"><label>Mode<select id="mode" class="control"><option>CLASSIC</option><option>MINIMAL</option><option>NIGHT</option></select></label><label>Brightness<select id="brightness" class="control"><option>10</option><option>25</option><option>40</option><option>80</option></select></label></div></article>
-<article class="card"><h2>Weather</h2><p class="weather-now" id="weatherTemperature">--</p><p class="weather-meta" id="weatherCondition">Waiting for data</p><p class="weather-meta" id="weatherDetails">Humidity -- · Wind --</p><p class="weather-meta" id="weatherAge">Not updated</p><button id="weatherRefresh" class="control" type="button">Refresh weather</button></article>
-<article class="card"><h2>Automatic NIGHT</h2><form id="autoForm"><label class="toggle"><input id="autoEnabled" class="control" type="checkbox">Enabled</label><div class="controls"><label>Starts<input id="autoStart" class="control" type="time" required></label><label>Ends<input id="autoEnd" class="control" type="time" required></label></div><button class="control" type="submit">Save schedule</button></form></article>
-<article class="card wide"><h2>Network configuration</h2><div class="stats"><div class="stat"><span>Configured mode</span><b id="networkConfigured">--</b></div><div class="stat"><span>Effective mode</span><b id="networkEffective">--</b></div><div class="stat"><span>Active configuration</span><b id="networkActive">--</b></div></div><p class="warning">Changing network settings may make this device unreachable. Save and Apply stores the configuration, responds to this browser, and then reboots. Record the new address first.</p><form id="networkForm"><label>Network mode<select id="networkMode" class="control"><option value="DHCP">DHCP</option><option value="STATIC">Static IP</option></select></label><div id="staticNetworkFields" class="network-fields"><label>Static IP<input id="networkIp" class="control" type="text" inputmode="decimal" placeholder="192.168.1.50"></label><label>Gateway<input id="networkGateway" class="control" type="text" inputmode="decimal" placeholder="192.168.1.1"></label><label>Subnet mask<input id="networkSubnet" class="control" type="text" inputmode="decimal" placeholder="255.255.255.0"></label><label>Primary DNS<input id="networkDns1" class="control" type="text" inputmode="decimal" placeholder="1.1.1.1"></label><label>Secondary DNS (optional)<input id="networkDns2" class="control" type="text" inputmode="decimal" placeholder="8.8.8.8"></label></div><div class="network-actions"><button class="control" type="submit">Save and Apply</button><button id="networkReset" class="danger control" type="button">Reset to DHCP</button></div></form></article>
-<details class="card wide" id="diagnosticsPanel"><summary>Diagnostics</summary><pre class="diagnostics" id="diagnosticsOutput">Open or refresh to load current diagnostics.</pre><div class="diagnostic-actions"><button id="diagnosticsRefresh" type="button">Refresh</button><button id="diagnosticsCopy" type="button">Copy diagnostics</button><button id="diagnosticsDownload" type="button">Download diagnostics JSON</button></div></details>
-<article class="card wide"><h2>System</h2><button id="reboot" class="danger control">Reboot )HALOHTML" HALO_CST_PRODUCT_NAME R"HALOHTML(</button><p id="feedback" class="feedback" aria-live="polite"></p></article></section>
-<dialog id="rebootDialog"><h2>Confirm reboot</h2><p>The clock will be unavailable briefly while it restarts.</p><div class="dialog-actions"><button id="rebootCancel" type="button">Cancel</button><button id="rebootConfirm" class="danger control" type="button">Reboot now</button></div></dialog><dialog id="networkDialog"><h2>Confirm network change</h2><p id="networkConfirmText">The clock will reboot and its current address may stop responding.</p><div class="dialog-actions"><button id="networkCancel" type="button">Cancel</button><button id="networkConfirm" class="danger control" type="button">Save, apply, and reboot</button></div></dialog></main>
-<script>
-const $=id=>document.getElementById(id),controls=()=>document.querySelectorAll('.control');let busy=false,diagnosticsData=null,networkAction='save';
-function setBusy(value){busy=value;controls().forEach(x=>x.disabled=value)}
-function feedback(message,error=false){$('feedback').textContent=message;$('feedback').className='feedback'+(error?' error':'')}
-function hhmm(seconds){seconds=Number(seconds)||0;const d=Math.floor(seconds/86400),h=Math.floor(seconds%86400/3600),m=Math.floor(seconds%3600/60);return(d?d+'d ':'')+h+'h '+m+'m'}
-function applyStatus(s){$('clock').textContent=s.time;$('wifi').textContent=s.wifiConnected?'Connected':'Disconnected';$('ip').textContent=s.ip;$('rssi').textContent=s.rssi+' dBm';$('uptime').textContent=hhmm(s.uptimeSeconds);$('firmware').textContent=s.firmwareVersion;$('ota').textContent=s.otaUpdating?'Updating':(s.otaReady?'Ready':'Waiting');$('selected').textContent=s.selectedMode;$('effective').textContent=s.effectiveMode;$('brightnessText').textContent=s.brightness;$('autoState').textContent=(s.autoNightEnabled?'Enabled':'Disabled')+' / '+(s.autoNightActive?'Active':'Inactive');$('schedule').textContent=s.autoNightStart+'–'+s.autoNightEnd;$('override').textContent=s.manualOverride?'Active':'None';$('weatherTemperature').textContent=s.weatherAvailable?s.temperature.toFixed(1)+' °C':'--';$('weatherCondition').textContent=s.weatherAvailable?s.condition:'WEATHER UNAVAILABLE';$('weatherDetails').textContent=s.weatherAvailable?'Humidity '+s.humidity+'% · Wind '+s.windSpeed.toFixed(1)+' km/h':(s.weatherError||'Waiting for data');const weatherState=s.weatherStale?'Stale':(s.weatherError&&s.weatherAvailable?'Cached / '+s.weatherError:(s.weatherAvailable?'Current':'Unavailable'));$('weatherAge').textContent=weatherState+(s.weatherLastUpdate?' · '+new Date(s.weatherLastUpdate*1000).toLocaleTimeString(): '');if(!busy){$('mode').value=s.selectedMode;$('brightness').value=String(s.brightness);$('autoEnabled').checked=s.autoNightEnabled;$('autoStart').value=s.autoNightStart;$('autoEnd').value=s.autoNightEnd}}
-async function status(){try{const r=await fetch('/api/status',{cache:'no-store'});if(!r.ok)throw Error('Status request failed');applyStatus(await r.json())}catch(e){feedback(e.message,true)}}
-async function loadDiagnostics(){try{const r=await fetch('/api/diagnostics',{cache:'no-store'});if(!r.ok)throw Error('Diagnostics request failed');diagnosticsData=await r.json();$('diagnosticsOutput').textContent=JSON.stringify(diagnosticsData,null,2)}catch(e){$('diagnosticsOutput').textContent=e.message;feedback(e.message,true)}}
-async function copyDiagnostics(){if(!diagnosticsData)await loadDiagnostics();if(!diagnosticsData)return;const text=JSON.stringify(diagnosticsData,null,2);try{if(navigator.clipboard)await navigator.clipboard.writeText(text);else{const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}feedback('Diagnostics copied')}catch(e){feedback('Copy failed',true)}}
-async function downloadDiagnostics(){if(!diagnosticsData)await loadDiagnostics();if(!diagnosticsData)return;const url=URL.createObjectURL(new Blob([JSON.stringify(diagnosticsData,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='halo-cst-diagnostics.json';link.click();URL.revokeObjectURL(url)}
-function toggleStaticFields(){const disabled=$('networkMode').value!=='STATIC';$('staticNetworkFields').querySelectorAll('input').forEach(x=>x.disabled=disabled)}
-async function loadNetwork(){try{const r=await fetch('/api/network',{cache:'no-store'});if(!r.ok)throw Error('Network request failed');const n=await r.json();$('networkConfigured').textContent=n.configured.mode;$('networkEffective').textContent=n.effective.mode+(n.effective.dhcpFallbackActive?' (fallback)':'');$('networkActive').textContent=n.active.ip+' / '+n.active.subnet+' via '+n.active.gateway;$('networkMode').value=n.configured.mode;$('networkIp').value=n.configured.staticIp;$('networkGateway').value=n.configured.gateway;$('networkSubnet').value=n.configured.subnet;$('networkDns1').value=n.configured.primaryDns;$('networkDns2').value=n.configured.secondaryDnsConfigured?n.configured.secondaryDns:'';toggleStaticFields()}catch(e){feedback(e.message,true)}}
-async function applyNetwork(){const reset=networkAction==='reset',path=reset?'/api/network/reset':'/api/network',data=reset?{confirm:'true'}:{confirm:'true',mode:$('networkMode').value,ip:$('networkIp').value,gateway:$('networkGateway').value,subnet:$('networkSubnet').value,primaryDns:$('networkDns1').value,secondaryDns:$('networkDns2').value};$('networkDialog').close();setBusy(true);feedback('Saving network settings…');try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data)}),result=await r.json();if(!r.ok||!result.ok)throw Error(result.error||'Network request failed');feedback('Saved. Device is rebooting; reconnect using the configured address.')}catch(e){feedback(e.message,true);setBusy(false)}}
-async function post(path,data){setBusy(true);feedback('Applying…');try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data)});const result=await r.json();if(!r.ok||!result.ok)throw Error(result.error||'Request failed');feedback('Saved');await status()}catch(e){feedback(e.message,true)}finally{setBusy(false);await status()}}
-$('mode').addEventListener('change',e=>post('/api/mode',{mode:e.target.value}));$('brightness').addEventListener('change',e=>post('/api/brightness',{value:e.target.value}));
-$('weatherRefresh').addEventListener('click',()=>post('/api/weather/refresh',{}));
-$('autoForm').addEventListener('submit',e=>{e.preventDefault();const a=$('autoStart').value.split(':'),b=$('autoEnd').value.split(':');post('/api/auto-night',{enabled:String($('autoEnabled').checked),startHour:a[0]||'',startMinute:a[1]||'',endHour:b[0]||'',endMinute:b[1]||''})});
-$('reboot').addEventListener('click',()=>$('rebootDialog').showModal());$('rebootCancel').addEventListener('click',()=>$('rebootDialog').close());$('rebootConfirm').addEventListener('click',()=>{$('rebootDialog').close();post('/api/reboot',{confirm:'true'})});
-$('diagnosticsPanel').addEventListener('toggle',e=>{if(e.target.open&&!diagnosticsData)loadDiagnostics()});$('diagnosticsRefresh').addEventListener('click',loadDiagnostics);$('diagnosticsCopy').addEventListener('click',copyDiagnostics);$('diagnosticsDownload').addEventListener('click',downloadDiagnostics);
-$('networkMode').addEventListener('change',toggleStaticFields);$('networkForm').addEventListener('submit',e=>{e.preventDefault();networkAction='save';$('networkConfirmText').textContent='Save these settings and reboot? The current address may stop responding.';$('networkDialog').showModal()});$('networkReset').addEventListener('click',()=>{networkAction='reset';$('networkConfirmText').textContent='Reset the saved network mode to DHCP and reboot?';$('networkDialog').showModal()});$('networkCancel').addEventListener('click',()=>$('networkDialog').close());$('networkConfirm').addEventListener('click',applyNetwork);
-status();loadNetwork();setInterval(status,3000);
-</script></body></html>)HALOHTML";
 
     const char* boolText(bool value)
     {
@@ -142,7 +105,53 @@ status();loadNetwork();setInterval(status,3000);
     {
         Serial.println("WEB REQUEST: GET /");
         server.sendHeader("Cache-Control", "no-store");
-        server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
+        server.send_P(200, "text/html; charset=utf-8", WebUiAssets::INDEX_HTML);
+    }
+
+    bool parseFloatArgument(const char* name, float minimum, float maximum, float& result)
+    {
+        if (!server.hasArg(name)) return false;
+        const String value = server.arg(name);
+        if (value.isEmpty()) return false;
+        char* end = nullptr;
+        const float parsed = std::strtof(value.c_str(), &end);
+        if (end == value.c_str() || *end != '\0' || !std::isfinite(parsed) || parsed < minimum || parsed > maximum)
+        {
+            return false;
+        }
+        result = parsed;
+        return true;
+    }
+
+    bool parseColorArgument(const char* name, RgbColor& result)
+    {
+        if (!server.hasArg(name)) return false;
+        const String value = server.arg(name);
+        if (value.length() != 7 || value[0] != '#') return false;
+        char* end = nullptr;
+        const unsigned long parsed = std::strtoul(value.c_str() + 1, &end, 16);
+        if (end != value.c_str() + 7 || *end != '\0') return false;
+        for (size_t index = 1; index < 7; ++index)
+        {
+            const char c = value[index];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) return false;
+        }
+        result = {
+            static_cast<uint8_t>((parsed >> 16) & 0xFFU),
+            static_cast<uint8_t>((parsed >> 8) & 0xFFU),
+            static_cast<uint8_t>(parsed & 0xFFU)};
+        return true;
+    }
+
+    void colorText(const RgbColor& color, char destination[8])
+    {
+        snprintf(destination, 8, "#%02X%02X%02X", color.red, color.green, color.blue);
+    }
+
+    void handleFavicon()
+    {
+        server.sendHeader("Cache-Control", "public, max-age=86400");
+        server.send_P(200, "image/svg+xml", WebUiAssets::FAVICON_SVG);
     }
 
     void handleStatus()
@@ -322,6 +331,109 @@ status();loadNetwork();setInterval(status,3000);
         }
     }
 
+    void handleCustomizationGet()
+    {
+        const RingCalibrationSettings& calibration = SettingsService::ringCalibration();
+        const WeatherLocationSettings& location = SettingsService::weatherLocation();
+        const CustomColorSettings& colors = SettingsService::customColors();
+        JsonDocument document;
+        JsonObject calibrationJson = document["calibration"].to<JsonObject>();
+        calibrationJson["zeroOffset"] = calibration.zeroOffset;
+        calibrationJson["clockwise"] = calibration.clockwise;
+        calibrationJson["active"] = Halo::isRingCalibrationActive();
+        JsonObject locationJson = document["weatherLocation"].to<JsonObject>();
+        locationJson["latitude"] = location.latitude;
+        locationJson["longitude"] = location.longitude;
+        JsonObject colorsJson = document["customColors"].to<JsonObject>();
+        char colorValue[8];
+        colorText(colors.hourTicks, colorValue); colorsJson["hourTicks"] = colorValue;
+        colorText(colors.minuteProgress, colorValue); colorsJson["minuteProgress"] = colorValue;
+        colorText(colors.hourCenter, colorValue); colorsJson["hourCenter"] = colorValue;
+        colorText(colors.hourSides, colorValue); colorsJson["hourSides"] = colorValue;
+        colorText(colors.minuteMarker, colorValue); colorsJson["minuteMarker"] = colorValue;
+        colorText(colors.secondMarker, colorValue); colorsJson["secondMarker"] = colorValue;
+        String body;
+        body.reserve(480);
+        serializeJson(document, body);
+        server.sendHeader("Cache-Control", "no-store");
+        server.send(200, "application/json", body);
+    }
+
+    void handleCalibration()
+    {
+        Serial.println("WEB REQUEST: POST /api/calibration");
+        if (!changesAllowed()) return;
+        uint8_t zeroOffset = 0;
+        if (!parseByteArgument("zeroOffset", Hardware::LED_COUNT - 1U, zeroOffset) ||
+            !server.hasArg("clockwise") || !server.hasArg("active"))
+        {
+            sendError(400, "invalid calibration settings");
+            return;
+        }
+        const String clockwiseValue = server.arg("clockwise");
+        const String activeValue = server.arg("active");
+        if ((clockwiseValue != "true" && clockwiseValue != "false") ||
+            (activeValue != "true" && activeValue != "false"))
+        {
+            sendError(400, "invalid calibration settings");
+            return;
+        }
+        const RingCalibrationSettings settings = {zeroOffset, clockwiseValue == "true"};
+        if (!Halo::setRingCalibration(settings, activeValue == "true"))
+        {
+            sendError(500, "calibration settings could not be saved");
+            return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
+    void handleWeatherLocation()
+    {
+        Serial.println("WEB REQUEST: POST /api/weather/location");
+        if (!changesAllowed()) return;
+        WeatherLocationSettings settings = {};
+        if (!parseFloatArgument("latitude", -90.0F, 90.0F, settings.latitude) ||
+            !parseFloatArgument("longitude", -180.0F, 180.0F, settings.longitude))
+        {
+            sendError(400, "invalid weather coordinates");
+            return;
+        }
+        if (WeatherService::snapshot().updating)
+        {
+            sendError(409, "weather request already in progress");
+            return;
+        }
+        if (!SettingsService::saveWeatherLocation(settings) || !WeatherService::locationChanged())
+        {
+            sendError(500, "weather location could not be applied");
+            return;
+        }
+        sendJson(200, "{\"ok\":true,\"refreshScheduled\":true}");
+    }
+
+    void handleCustomColors()
+    {
+        Serial.println("WEB REQUEST: POST /api/custom-colors");
+        if (!changesAllowed()) return;
+        CustomColorSettings settings = {};
+        if (!parseColorArgument("hourTicks", settings.hourTicks) ||
+            !parseColorArgument("minuteProgress", settings.minuteProgress) ||
+            !parseColorArgument("hourCenter", settings.hourCenter) ||
+            !parseColorArgument("hourSides", settings.hourSides) ||
+            !parseColorArgument("minuteMarker", settings.minuteMarker) ||
+            !parseColorArgument("secondMarker", settings.secondMarker))
+        {
+            sendError(400, "invalid custom color");
+            return;
+        }
+        if (!Halo::setCustomColors(settings))
+        {
+            sendError(500, "custom colors could not be saved");
+            return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
     void handleMode()
     {
         Serial.println("WEB REQUEST: POST /api/mode");
@@ -337,6 +449,7 @@ status();loadNetwork();setInterval(status,3000);
         if (value == "CLASSIC") mode = DisplayMode::CLASSIC;
         else if (value == "MINIMAL") mode = DisplayMode::MINIMAL;
         else if (value == "NIGHT") mode = DisplayMode::NIGHT;
+        else if (value == "CUSTOM") mode = DisplayMode::CUSTOM;
         else
         {
             sendError(400, "invalid mode");
@@ -557,8 +670,10 @@ status();loadNetwork();setInterval(status,3000);
     void configureRoutes()
     {
         server.on("/", HTTP_GET, handleRoot);
+        server.on("/favicon.svg", HTTP_GET, handleFavicon);
         server.on("/api/status", HTTP_GET, handleStatus);
         server.on("/api/diagnostics", HTTP_GET, handleDiagnostics);
+        server.on("/api/customization", HTTP_GET, handleCustomizationGet);
         server.on("/api/network", HTTP_GET, handleNetworkGet);
         server.on("/api/network", HTTP_POST, handleNetworkSave);
         server.on("/api/network/reset", HTTP_POST, handleNetworkReset);
@@ -566,6 +681,9 @@ status();loadNetwork();setInterval(status,3000);
         server.on("/api/brightness", HTTP_POST, handleBrightness);
         server.on("/api/auto-night", HTTP_POST, handleAutoNight);
         server.on("/api/weather/refresh", HTTP_POST, handleWeatherRefresh);
+        server.on("/api/weather/location", HTTP_POST, handleWeatherLocation);
+        server.on("/api/calibration", HTTP_POST, handleCalibration);
+        server.on("/api/custom-colors", HTTP_POST, handleCustomColors);
         server.on("/api/reboot", HTTP_POST, handleReboot);
         server.onNotFound([]() {
             Serial.printf("WEB REQUEST: %s %s\r\n", server.method() == HTTP_POST ? "POST" : "GET", server.uri().c_str());

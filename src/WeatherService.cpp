@@ -9,6 +9,7 @@
 
 #include "Config.h"
 #include "DiagnosticsService.h"
+#include "SettingsService.h"
 #include "WeatherProvider.h"
 
 namespace
@@ -102,7 +103,8 @@ namespace
         }
 
         char url[512];
-        if (!WeatherProvider::buildRequestUrl(url, sizeof(url)))
+        const WeatherLocationSettings location = SettingsService::weatherLocation();
+        if (!WeatherProvider::buildRequestUrl(url, sizeof(url), location.latitude, location.longitude))
         {
             finishFailure("request URL too long");
             return;
@@ -328,6 +330,20 @@ WeatherRefreshResult WeatherService::requestRefresh()
     manualRefreshPending = true;
     unlockState();
     return WeatherRefreshResult::ACCEPTED;
+}
+
+bool WeatherService::locationChanged()
+{
+    lockState();
+    if (current.updating)
+    {
+        unlockState();
+        return false;
+    }
+    manualRefreshPending = true;
+    nextAttemptAt = millis();
+    unlockState();
+    return true;
 }
 
 bool WeatherService::consumeDisplayUpdate()

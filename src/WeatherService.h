@@ -79,5 +79,6 @@ public:
     static void update();
     static WeatherData snapshot();
     static WeatherRefreshResult requestRefresh();
+    static bool locationChanged();
     static bool consumeDisplayUpdate();
 };

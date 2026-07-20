@@ -46,8 +46,8 @@ namespace Config
     constexpr uint32_t WEB_REBOOT_DELAY_MS = 500;
 
     // Current weather is provided by Open-Meteo without an API key. These
-    // checked-in coordinates are a deliberate public example near Greenwich,
-    // UK. Change them to the installation's WGS84 latitude and longitude.
+    // checked-in coordinates are the fresh-install default near Greenwich,
+    // UK. The Web UI can persist installation-specific WGS84 coordinates.
     constexpr const char* WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
     constexpr float WEATHER_LATITUDE = 51.4769F;
     constexpr float WEATHER_LONGITUDE = 0.0005F;
@@ -77,6 +77,10 @@ namespace Config
     constexpr const char* SETTINGS_AUTO_NIGHT_END_MINUTE_KEY = "autoEndM";
     constexpr const char* SETTINGS_NETWORK_KEY = "networkCfg";
     constexpr const char* SETTINGS_STATIC_FAILURE_COUNT_KEY = "netFail";
+    constexpr const char* SETTINGS_RING_ZERO_KEY = "ringZero";
+    constexpr const char* SETTINGS_RING_CLOCKWISE_KEY = "ringCw";
+    constexpr const char* SETTINGS_WEATHER_LOCATION_KEY = "weatherLoc";
+    constexpr const char* SETTINGS_CUSTOM_COLORS_KEY = "customLed";
 
     constexpr uint8_t STATIC_NETWORK_FAILURE_LIMIT = 2;
     constexpr uint32_t STATIC_NETWORK_VALIDATION_TIMEOUT_MS = 45UL * 1000UL;
@@ -86,8 +90,8 @@ namespace Config
     constexpr uint32_t NETWORK_RECOVERY_BOOT_WINDOW_MS = 30UL * 1000UL;
     constexpr uint32_t NETWORK_REBOOT_DELAY_MS = 750;
 
-    // LED ring calibration. Logical position 0 is 12 o'clock; positions then
-    // advance around the clock face in the selected direction.
+    // Fresh-install LED ring calibration defaults. Logical position 0 is
+    // 12 o'clock; the Web UI can persist offset and direction changes.
     constexpr uint8_t LED_ZERO_OFFSET = 0;
     constexpr bool LED_CLOCKWISE = true;
     constexpr bool ENABLE_RING_CALIBRATION = false;

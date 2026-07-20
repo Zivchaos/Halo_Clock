@@ -18,7 +18,7 @@ $reboots = 0; $wifiDisconnects = 0; $slowResponses = 0; $consecutiveFailures = 0
 $pageChecks = 0; $pageFailures = 0
 $lastUptime = $null; $finalStatus = $null
 $responseTimes = [System.Collections.Generic.List[double]]::new()
-$validModes = @("CLASSIC","MINIMAL","NIGHT")
+$validModes = @("CLASSIC","MINIMAL","NIGHT","CUSTOM")
 $validBrightness = @(10,25,40,80)
 
 function Write-SoakRow([object]$Row) {

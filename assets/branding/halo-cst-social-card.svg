@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">HALO CST social card</title>
+  <desc id="desc">HALO CST social card with a clear product title and illuminated octagonal clock.</desc>
+  <defs>
+    <radialGradient id="background" cx="76%" cy="45%" r="78%">
+      <stop stop-color="#102a36"/>
+      <stop offset="1" stop-color="#070b0e"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <rect x="72" y="118" width="6" height="286" rx="3" fill="#22d3ee"/>
+  <text x="108" y="180" fill="#f2f2f2" font-family="Arial Narrow,Arial,sans-serif" font-size="76" font-weight="600" letter-spacing="9">HALO CST</text>
+  <text x="112" y="228" fill="#7dd3fc" font-family="Arial,Helvetica,sans-serif" font-size="19" letter-spacing="5">CONNECTED SMART TIMEPIECE</text>
+  <text x="112" y="310" fill="#f2f2f2" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="600">LOCAL TIME. CLEARLY MADE.</text>
+  <text x="112" y="352" fill="#a7b6bc" font-family="Arial,Helvetica,sans-serif" font-size="24">ESP32 · LED display · Weather · OTA</text>
+  <text x="112" y="398" fill="#a7b6bc" font-family="Arial,Helvetica,sans-serif" font-size="21">A local-first clock with a responsive embedded Web UI.</text>
+  <path d="M800 92h180l110 110v226L980 538H800L690 428V202Z" fill="#0a1117" stroke="#22d3ee" stroke-width="9" filter="url(#glow)"/>
+  <rect x="791" y="268" width="198" height="92" rx="8" fill="#050709" stroke="#31424a" stroke-width="2"/>
+  <text x="890" y="326" fill="#f2f2f2" font-family="ui-monospace,Consolas,monospace" font-size="42" text-anchor="middle">10:32</text>
+  <text x="890" y="347" fill="#7dd3fc" font-family="Arial,Helvetica,sans-serif" font-size="10" letter-spacing="3" text-anchor="middle">LOCAL TIME</text>
+  <circle cx="890" cy="398" r="7" fill="#22d3ee"/>
+  <text x="890" y="580" fill="#7dd3fc" font-family="Arial,Helvetica,sans-serif" font-size="15" letter-spacing="4" text-anchor="middle">HALO_CLOCK</text>
+</svg>

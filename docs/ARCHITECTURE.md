@@ -25,7 +25,7 @@ Weather HTTPS work runs in one FreeRTOS task at a time. The service prevents ove
 
 ## State boundaries
 
-- **Selected mode** is the user’s persisted CLASSIC, MINIMAL, or NIGHT choice.
+- **Selected mode** is the user's persisted CLASSIC, MINIMAL, NIGHT, or CUSTOM choice.
 - **Effective mode** is what renders after automatic NIGHT scheduling and manual override are applied.
 - **Normal brightness** is persisted; NIGHT uses a fixed low output without overwriting it.
 - **Weather cache** and **diagnostic counters** live only in RAM.
@@ -33,7 +33,7 @@ Weather HTTPS work runs in one FreeRTOS task at a time. The service prevents ove
 
 ## LED rendering
 
-All clock elements use one logical-to-physical mapping based on `LED_ZERO_OFFSET` and `LED_CLOCKWISE`. CLASSIC renders hour ticks, minute progress, hour marker, and second marker. MINIMAL renders hour/minute/second markers. NIGHT renders only hour and minute at low fixed brightness. Weather never changes the LED clock.
+All clock elements use one logical-to-physical mapping. `LED_ZERO_OFFSET` and `LED_CLOCKWISE` provide fresh-install defaults; validated Web UI changes are persisted by `SettingsService`. CLASSIC renders hour ticks, minute progress, hour marker, and second marker. MINIMAL renders hour/minute/second markers. NIGHT renders only hour and minute at low fixed brightness. CUSTOM uses the CLASSIC structure with six persisted RGB color choices. Weather never changes the LED clock.
 
 During OTA, normal ring rendering pauses and a progress indicator owns the LEDs. Normal rendering resumes after an OTA failure; a successful OTA reboots normally.
 
@@ -42,10 +42,14 @@ During OTA, normal ring rendering pauses and a progress indicator owns the LEDs.
 - `GET /` — embedded HALO CST Web UI
 - `GET /api/status` — lightweight three-second polling snapshot
 - `GET /api/diagnostics` — complete on-demand diagnostics snapshot
+- `GET /api/customization` — calibration, weather location, and CUSTOM colors
 - `POST /api/mode` — validated selected display mode
 - `POST /api/brightness` — validated supported brightness
 - `POST /api/auto-night` — validated schedule and enable state
 - `POST /api/weather/refresh` — server-rate-limited refresh request
+- `POST /api/weather/location` — validated persisted WGS84 coordinates
+- `POST /api/calibration` — temporary cardinal test and persisted ring mapping
+- `POST /api/custom-colors` — validated persisted RGB colors
 - `POST /api/reboot` — confirmed, deferred reboot request
 
 ## Upgrade compatibility

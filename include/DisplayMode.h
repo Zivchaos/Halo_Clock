@@ -6,13 +6,14 @@ enum class DisplayMode : uint8_t
 {
     CLASSIC = 0,
     MINIMAL,
-    NIGHT
+    NIGHT,
+    CUSTOM
 };
 
 namespace DisplayModes
 {
-    constexpr uint8_t COUNT = 3;
-    constexpr const char* NAMES[COUNT] = {"CLASSIC", "MINIMAL", "NIGHT"};
+    constexpr uint8_t COUNT = 4;
+    constexpr const char* NAMES[COUNT] = {"CLASSIC", "MINIMAL", "NIGHT", "CUSTOM"};
 
     constexpr bool isValid(uint8_t value)
     {

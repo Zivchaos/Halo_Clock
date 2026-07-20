@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">HALO CST primary logo</title>
+  <desc id="desc">HALO wordmark with an octagonal O, CST designation, and Connected Smart Timepiece tagline.</desc>
+  <g fill="none" stroke="#f2f2f2" stroke-width="11" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M34 28v88m0-44h72m0-44v88M142 116l42-88 42 88m-68-32h52M263 28v88h72"/>
+    <path d="M386 28h58l28 28v32l-28 28h-58l-28-28V56Z"/>
+  </g>
+  <rect x="500" y="42" width="172" height="62" fill="#22d3ee"/>
+  <text x="586" y="86" fill="#0e0e0e" font-family="Arial Narrow,Arial,sans-serif" font-size="42" font-weight="700" letter-spacing="8" text-anchor="middle">CST</text>
+  <text x="34" y="157" fill="#7dd3fc" font-family="Arial,Helvetica,sans-serif" font-size="20" letter-spacing="5">CONNECTED SMART TIMEPIECE</text>
+</svg>
