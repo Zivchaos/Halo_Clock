@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/Zivchaos/Halo_Clock/actions/workflows/platformio.yml"><img src="https://github.com/Zivchaos/Halo_Clock/actions/workflows/platformio.yml/badge.svg" alt="Firmware build"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22D3EE.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/firmware-1.0.0--rc1-101820.svg" alt="Firmware 1.0.0-rc1">
+  <img src="https://img.shields.io/badge/firmware-1.0.0-101820.svg" alt="Firmware 1.0.0">
   <img src="https://img.shields.io/badge/platform-ESP32-22C55E.svg" alt="ESP32">
 </p>
 
@@ -178,7 +178,7 @@ powershell -ExecutionPolicy Bypass -File tools/test-public-release.ps1
 
 ## Roadmap
 
-- Stabilize the 1.0 release candidate
+- Expand post-release hardware and rendering coverage
 - Expand automated hardware and rendering coverage
 - Document approved prototype enclosures and face designs
 - Evaluate authenticated management while preserving local-first operation
@@ -187,7 +187,7 @@ Cloud telemetry, forecasts, and remote dashboards are intentionally outside the 
 
 ## Releases
 
-Current firmware: **1.0.0-rc1**. Milestone history is recorded in [CHANGELOG.md](CHANGELOG.md); prototype and release tags preserve historical firmware states.
+Current firmware: **1.0.0**. Milestone history is recorded in [CHANGELOG.md](CHANGELOG.md); prototype and release tags preserve historical firmware states.
 
 ## Security
 

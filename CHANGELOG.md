@@ -2,6 +2,42 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [1.0.0] — 2026-07-20
+
+HALO CST 1.0.0 is the first public release of the Connected Smart Timepiece: a local-first ESP32 clock with a custom LED display engine, responsive embedded WebUI, persistent settings, weather, diagnostics, and OTA support.
+
+### New features
+
+- Added a responsive, device-hosted WebUI with a live overview, display controls, network configuration, weather, diagnostics, and trusted-LAN safety guidance.
+- Added runtime LED-ring calibration: configurable physical 12 o’clock offset, clockwise/counterclockwise direction, a four-color cardinal test, validation, persistence, and WebUI/API controls.
+- Added persisted weather-location configuration with validated WGS84 coordinates and Open-Meteo refresh integration.
+- Added the CUSTOM display mode with six persisted LED color controls.
+
+### Improvements
+
+- Established the HALO CST visual identity with octagonal marks, favicon, social card, brand guide, and a WebUI that reflects the physical prototype.
+- Reworked the README as a product-facing guide with real, privacy-redacted WebUI captures, quick start, hardware overview, configuration, testing, and security guidance.
+- Improved API validation and persisted settings handling for calibration, custom colors, and weather location.
+- Added architecture and WebUI-design documentation, while preserving existing wiring, network-recovery, partition-migration, contribution, and security references.
+
+### Testing and release engineering
+
+- Added WebUI source checks and public-release metadata checks.
+- Validated the release with 39 WebUI source checks, 46 public-release checks, and 38 embedded test cases across weather, diagnostics, and network configuration.
+- Confirmed a successful ESP32 firmware build using the dual-OTA 4 MiB partition layout.
+
+### Repository consolidation
+
+- Consolidated the branded WebUI, calibration, weather-location, and CUSTOM-mode work through the integration branch.
+- Removed superseded WebUI, calibration, and branding feature branches after merge, while preserving all milestone tags.
+- Removed the unused `faceplates/arabic.svg` asset and kept release imagery free of private network addresses and personal coordinates.
+
+### Known limitations
+
+- HALO CST remains a trusted-LAN device: the WebUI and ArduinoOTA service are unauthenticated and must not be exposed to the public Internet.
+- Hardware enclosure photographs are not yet part of this release; the documented enclosure remains a maker prototype.
+- The supplied WebUI captures are representative desktop views; mobile and physical-prototype imagery can be added in a later release.
+
 ## [1.0.0-rc1] — 2026-07-15
 
 - Renamed the public product to HALO CST — Connected Smart Timepiece.

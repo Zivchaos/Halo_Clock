@@ -139,7 +139,7 @@ try {
     Assert-Halo ($diagnostics.ota.ready -is [bool]) "diagnostics OTA ready state is boolean"
     Assert-Halo ($diagnostics.ota.updating -is [bool]) "diagnostics OTA updating state is boolean"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.ota.runningPartition)) "diagnostics running partition exists"
-    Assert-Halo ([string]$diagnostics.firmware.version -eq "1.0.0-rc1") "diagnostics reports firmware 1.0.0-rc1"
+    Assert-Halo ([string]$diagnostics.firmware.version -eq "1.0.0") "diagnostics reports firmware 1.0.0"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildDate)) "diagnostics build date exists"
     Assert-Halo (-not [string]::IsNullOrWhiteSpace([string]$diagnostics.firmware.buildTime)) "diagnostics build time exists"
     Assert-Halo ([bool]$diagnostics.ota.ready -eq [bool]$status.otaReady) "diagnostics OTA ready matches status"

@@ -2,11 +2,11 @@
 
 ## Supported versions
 
-Security fixes target the latest release and active release candidate. Older milestone tags are retained for history but are not maintained.
+Security fixes target the latest stable release. Older milestone tags are retained for history but are not maintained.
 
 ## Security model
 
-HALO CST is a local-first maker project intended only for a trusted LAN. Firmware 1.0.0-rc1 has:
+HALO CST is a local-first maker project intended only for a trusted LAN. Firmware 1.0.0 has:
 
 - an unauthenticated HTTP Web UI and control API on port 80;
 - unauthenticated ArduinoOTA on port 3232;

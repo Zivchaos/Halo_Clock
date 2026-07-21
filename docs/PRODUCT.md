@@ -17,11 +17,11 @@ Time should be beautiful, readable, calm, and locally controlled. The LED ring c
 5. Network-facing features are explicit about their trusted-LAN security model.
 6. Hardware, behavior, and product identity are centralized and documented.
 
-## Release-candidate identity
+## Release identity
 
 - Product: HALO CST
 - Expanded name: Connected Smart Timepiece
-- Firmware: 1.0.0-rc1
+- Firmware: 1.0.0
 - Hostname and OTA target: `halo-cst`
 - Setup access point: `HALO-CST-Setup`
 - Local dashboard: `http://halo-cst.local`
@@ -30,6 +30,6 @@ These values are centralized in `include/Version.h`. Internal class names such a
 
 ## Current scope
 
-The release candidate includes synchronized time, three display modes, automatic NIGHT, persistent settings, ring calibration, WiFiManager provisioning, ArduinoOTA, a local Web UI/API, cached current weather, and RAM-only diagnostics.
+The 1.0 release includes synchronized time, four display modes, automatic NIGHT, persistent settings, ring calibration, WiFiManager provisioning, ArduinoOTA, a local Web UI/API, cached current weather, and RAM-only diagnostics.
 
 It deliberately excludes cloud telemetry, forecasts, alarms, browser firmware upload, authentication, filesystem storage, and extra display modes.

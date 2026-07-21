@@ -2,7 +2,7 @@
 
 #define HALO_CST_PRODUCT_NAME "HALO CST"
 #define HALO_CST_EXPANDED_NAME "Connected Smart Timepiece"
-#define HALO_CST_FIRMWARE_VERSION "1.0.0-rc1"
+#define HALO_CST_FIRMWARE_VERSION "1.0.0"
 #define HALO_CST_HOSTNAME "halo-cst"
 #define HALO_CST_SETUP_AP_NAME "HALO-CST-Setup"
 
