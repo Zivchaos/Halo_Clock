@@ -139,7 +139,9 @@ function applyStatus(status) {
   text("weatherAge", `${status.weatherStale ? "Stale" : (weatherAvailable ? "Current" : "Unavailable")}${lastUpdate !== "—" ? ` · ${lastUpdate}` : ""}`);
 
   text("diagnosticsSummary", status.wifiConnected && status.otaReady && !status.weatherStale ? "All systems normal" : "Review status");
-  const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? `ACTIVE: ${status.redAlertAreas || "selected area"}` : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}` : (status.redAlertUpdating ? "Checking alert source" : "Monitoring selected areas")));
+  const lastCheck = status.redAlertHasSuccessfulCheck ? ` Last successful check ${Number(status.redAlertLastCheckAgeSeconds || 0)}s ago.` : "";
+  const failureSuffix = Number(status.redAlertFailureCount || 0) > 1 ? ` (${status.redAlertFailureCount} failed checks)` : "";
+  const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? `ACTIVE: ${status.redAlertAreas || "selected area"}` : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}${failureSuffix}.${lastCheck}` : (status.redAlertUpdating ? `Checking alert source.${lastCheck}` : `Monitoring selected areas.${lastCheck}`)));
   text("redAlertState", alertState);
   if (!state.busy) $("redAlertEnabled").checked = Boolean(status.redAlertEnabled);
   if (!state.busy) {

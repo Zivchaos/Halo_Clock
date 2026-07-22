@@ -1,6 +1,5 @@
 #include "RedAlertService.h"
 
-#include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
@@ -10,6 +9,7 @@
 #include <cstring>
 
 #include "Config.h"
+#include "RedAlertProvider.h"
 #include "SettingsService.h"
 
 namespace
@@ -29,24 +29,13 @@ namespace
         snprintf(destination, size, "%s", source == nullptr ? "" : source);
     }
 
-    bool matchesSelectedLocation(JsonArray areas)
-    {
-        const RedAlertSettings& settings = SettingsService::redAlert();
-        if (settings.locations[0] == '\0') return false;
-        for (JsonVariant value : areas)
-        {
-            const char* area = value.as<const char*>();
-            if (area != nullptr && strstr(settings.locations, area) != nullptr) return true;
-        }
-        return false;
-    }
-
     void finishFailure(const char* reason)
     {
         xSemaphoreTake(mutex, portMAX_DELAY);
         current.updating = false;
         current.stale = true;
         current.active = false;
+        if (current.consecutiveFailures < UINT8_MAX) ++current.consecutiveFailures;
         copyText(current.error, sizeof(current.error), reason);
         nextAttemptAt = millis() + Config::RED_ALERT_FAILURE_BACKOFF_MS;
         xSemaphoreGive(mutex);
@@ -90,41 +79,26 @@ namespace
             xSemaphoreTake(mutex, portMAX_DELAY);
             current.updating = false; current.stale = false; current.active = false;
             current.id[0] = current.title[0] = current.areas[0] = current.error[0] = '\0';
+            current.consecutiveFailures = 0;
             current.lastSuccessfulUpdateMs = millis(); nextAttemptAt = millis() + Config::RED_ALERT_POLL_INTERVAL_MS;
             xSemaphoreGive(mutex); vTaskDelete(nullptr); return;
         }
-        JsonDocument document;
-        if (deserializeJson(document, payload)) { finishFailure("invalid alert response"); vTaskDelete(nullptr); return; }
-        JsonObject alert = document.as<JsonObject>();
-        if (document.is<JsonArray>())
+        RedAlertReading reading;
+        if (RedAlertProvider::parseResponse(payload.c_str(), payload.length(), SettingsService::redAlert().locations, reading) != RedAlertParseResult::OK)
         {
-            JsonArray notifications = document.as<JsonArray>();
-            if (notifications.size() > 0) alert = notifications[0].as<JsonObject>();
+            finishFailure("invalid alert response"); vTaskDelete(nullptr); return;
         }
-        JsonArray areas = alert["data"].as<JsonArray>();
-        if (areas.isNull()) areas = alert["cities"].as<JsonArray>();
-        const char* id = alert["id"] | "";
-        if (id[0] == '\0') id = alert["notificationId"] | "";
-        const bool sourceAlert = !areas.isNull() && areas.size() > 0 && id[0] != '\0';
         xSemaphoreTake(mutex, portMAX_DELAY);
         current.updating = false;
         current.stale = false;
         current.lastSuccessfulUpdateMs = millis();
-        current.active = sourceAlert && matchesSelectedLocation(areas);
+        current.consecutiveFailures = 0;
+        current.active = reading.sourceAlert && reading.matchesSelection;
         if (current.active)
         {
-            copyText(current.id, sizeof(current.id), id);
-            copyText(current.title, sizeof(current.title), alert["title"] | "Community Red Alert");
-            current.areas[0] = '\0';
-            for (JsonVariant value : areas)
-            {
-                const char* area = value.as<const char*>();
-                if (area != nullptr && strstr(SettingsService::redAlert().locations, area) != nullptr)
-                {
-                    if (current.areas[0] != '\0') strlcat(current.areas, ", ", sizeof(current.areas));
-                    strlcat(current.areas, area, sizeof(current.areas));
-                }
-            }
+            copyText(current.id, sizeof(current.id), reading.id);
+            copyText(current.title, sizeof(current.title), reading.title);
+            copyText(current.areas, sizeof(current.areas), reading.areas);
         }
         else { current.id[0] = current.title[0] = current.areas[0] = '\0'; }
         current.error[0] = '\0';

@@ -9,6 +9,7 @@ struct RedAlertData
     bool stale = false;
     bool updating = false;
     uint32_t lastSuccessfulUpdateMs = 0;
+    uint8_t consecutiveFailures = 0;
     char id[48] = "";
     char title[48] = "";
     char areas[192] = "";

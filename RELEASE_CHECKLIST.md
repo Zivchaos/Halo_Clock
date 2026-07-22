@@ -36,5 +36,9 @@
 - [ ] Draft pull request records exact validation and unresolved limitations.
 - [ ] Review feedback and CI are complete.
 - [ ] Release notes and artifacts are prepared without secrets.
+- [ ] Use a `v*` tag for the standard firmware, or an
+  `israeli-red-alert-v*` tag for the Israeli Red Alert branch.
+- [ ] Publish the GitHub Release from that tag; the release workflow builds
+  the tagged source and attaches the correctly named `.bin` automatically.
 - [ ] Final release tag is created only after explicit approval.
 - [ ] Repository visibility is changed only by an authorized maintainer.

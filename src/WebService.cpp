@@ -229,7 +229,8 @@ namespace
             "\"apparentTemperature\":%s,\"condition\":\"%s\",\"humidity\":%s,"
             "\"windSpeed\":%s,\"weatherLastUpdate\":%lu,\"weatherError\":\"%s\","
             "\"redAlertEnabled\":%s,\"redAlertActive\":%s,\"redAlertStale\":%s,"
-            "\"redAlertUpdating\":%s,\"redAlertAreas\":\"%s\",\"redAlertError\":\"%s\"}",
+            "\"redAlertUpdating\":%s,\"redAlertAreas\":\"%s\",\"redAlertError\":\"%s\","
+            "\"redAlertHasSuccessfulCheck\":%s,\"redAlertLastCheckAgeSeconds\":%lu,\"redAlertFailureCount\":%u}",
             timeText,
             boolText(WiFi.status() == WL_CONNECTED),
             ipAddress.c_str(),
@@ -271,7 +272,10 @@ namespace
             static_cast<unsigned long>(weather.lastSuccessfulUpdateEpoch),
             weather.error,
             boolText(redAlert.enabled), boolText(redAlert.active), boolText(redAlert.stale),
-            boolText(redAlert.updating), redAlert.areas, redAlert.error);
+            boolText(redAlert.updating), redAlert.areas, redAlert.error,
+            boolText(redAlert.lastSuccessfulUpdateMs != 0),
+            static_cast<unsigned long>(redAlert.lastSuccessfulUpdateMs == 0 ? 0 : (millis() - redAlert.lastSuccessfulUpdateMs) / 1000UL),
+            redAlert.consecutiveFailures);
         sendJson(200, body);
     }
 

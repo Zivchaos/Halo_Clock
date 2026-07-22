@@ -2,7 +2,14 @@ name: Firmware build
 
 on:
   push:
+    branches:
+      - main
+      - feature/Israeli-Red-Alert
   pull_request:
+    branches:
+      - main
+      - feature/Israeli-Red-Alert
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,3 +23,25 @@ jobs:
         run: pip install platformio
       - name: Build HALO CST firmware
         run: platformio run --project-conf platformIO.ini
+      - name: Name firmware artifact
+        id: firmware
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "feature/Israeli-Red-Alert" ]]; then
+            echo "file=halo-cst-israeli-red-alert.bin" >> "$GITHUB_OUTPUT"
+            echo "artifact=halo-cst-israeli-red-alert" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=halo-cst.bin" >> "$GITHUB_OUTPUT"
+            echo "artifact=halo-cst" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Prepare firmware artifact
+        run: |
+          mkdir -p dist
+          cp .pio/build/esp32dev/firmware.bin "dist/${{ steps.firmware.outputs.file }}"
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.firmware.outputs.artifact }}
+          path: dist/${{ steps.firmware.outputs.file }}
+          if-no-files-found: error
+          retention-days: 30

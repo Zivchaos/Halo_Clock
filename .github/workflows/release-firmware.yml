@@ -1,0 +1,42 @@
+name: Attach release firmware
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Build release firmware
+        run: platformio run --project-conf platformIO.ini
+      - name: Name release firmware
+        id: firmware
+        shell: bash
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          if [[ "$tag" == israeli-red-alert-v* ]]; then
+            echo "file=halo-cst-israeli-red-alert-${tag}.bin" >> "$GITHUB_OUTPUT"
+          elif [[ "$tag" == v* ]]; then
+            echo "file=halo-cst-${tag}.bin" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release tags must use v* or israeli-red-alert-v*." >&2
+            exit 1
+          fi
+      - name: Attach firmware to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            ".pio/build/esp32dev/firmware.bin#${{ steps.firmware.outputs.file }}" --clobber
