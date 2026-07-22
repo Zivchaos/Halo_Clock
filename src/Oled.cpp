@@ -143,3 +143,16 @@ void Oled::weather(const WeatherData& weather, DisplayMode mode)
     centerText(details, 62);
     oled.sendBuffer();
 }
+
+void Oled::redAlert(const char* area, bool test)
+{
+    oled.clearBuffer();
+    oled.setContrast(255);
+    oled.setFont(u8g2_font_7x14B_tf);
+    centerText(test ? "TEST ALERT" : "RED ALERT", 22);
+    oled.setFont(u8g2_font_6x12_tf);
+    centerText(test ? "SIMULATION ONLY" : "FOLLOW OFFICIAL", 40);
+    centerText(test ? "" : "INSTRUCTIONS", 52);
+    if (area != nullptr && area[0] != '\0') centerText(area, 63);
+    oled.sendBuffer();
+}

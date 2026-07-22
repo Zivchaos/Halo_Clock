@@ -16,6 +16,7 @@
 #include "NetworkConfig.h"
 #include "NetworkService.h"
 #include "OtaService.h"
+#include "RedAlertService.h"
 #include "SettingsService.h"
 #include "TimeService.h"
 #include "Version.h"
@@ -145,6 +146,20 @@ namespace
         return true;
     }
 
+    bool parseRedAlertSettings(RedAlertSettings& result)
+    {
+        if (!server.hasArg("enabled") || !server.hasArg("locations") || !server.hasArg("relayUrl")) return false;
+        const String enabled = server.arg("enabled");
+        const String locations = server.arg("locations");
+        const String relayUrl = server.arg("relayUrl");
+        if ((enabled != "true" && enabled != "false") || locations.length() >= sizeof(result.locations) ||
+            relayUrl.length() >= sizeof(result.relayUrl) || (enabled == "true" && (locations.isEmpty() || relayUrl.isEmpty()))) return false;
+        result.enabled = enabled == "true";
+        snprintf(result.locations, sizeof(result.locations), "%s", locations.c_str());
+        snprintf(result.relayUrl, sizeof(result.relayUrl), "%s", relayUrl.c_str());
+        return true;
+    }
+
     void colorText(const RgbColor& color, char destination[8])
     {
         snprintf(destination, 8, "#%02X%02X%02X", color.red, color.green, color.blue);
@@ -167,6 +182,7 @@ namespace
 
         const AutoNightSettings& autoNight = SettingsService::autoNight();
         const WeatherData weather = WeatherService::snapshot();
+        const RedAlertData redAlert = RedAlertService::snapshot();
         char startText[8];
         char endText[8];
         snprintf(startText, sizeof(startText), "%02u:%02u", autoNight.startHour, autoNight.startMinute);
@@ -193,7 +209,7 @@ namespace
         }
 
         const NetworkStatus network = NetworkService::snapshot();
-        char body[2000];
+        char body[2600];
         snprintf(
             body,
             sizeof(body),
@@ -211,7 +227,9 @@ namespace
             "\"dhcpFallbackActive\":%s,\"staticConnectionFailureCount\":%u,"
             "\"weatherAvailable\":%s,\"weatherStale\":%s,\"temperature\":%s,"
             "\"apparentTemperature\":%s,\"condition\":\"%s\",\"humidity\":%s,"
-            "\"windSpeed\":%s,\"weatherLastUpdate\":%lu,\"weatherError\":\"%s\"}",
+            "\"windSpeed\":%s,\"weatherLastUpdate\":%lu,\"weatherError\":\"%s\","
+            "\"redAlertEnabled\":%s,\"redAlertActive\":%s,\"redAlertStale\":%s,"
+            "\"redAlertUpdating\":%s,\"redAlertAreas\":\"%s\",\"redAlertError\":\"%s\"}",
             timeText,
             boolText(WiFi.status() == WL_CONNECTED),
             ipAddress.c_str(),
@@ -251,7 +269,9 @@ namespace
             humidityText,
             windSpeedText,
             static_cast<unsigned long>(weather.lastSuccessfulUpdateEpoch),
-            weather.error);
+            weather.error,
+            boolText(redAlert.enabled), boolText(redAlert.active), boolText(redAlert.stale),
+            boolText(redAlert.updating), redAlert.areas, redAlert.error);
         sendJson(200, body);
     }
 
@@ -354,6 +374,11 @@ namespace
         colorText(colors.hourSides, colorValue); colorsJson["hourSides"] = colorValue;
         colorText(colors.minuteMarker, colorValue); colorsJson["minuteMarker"] = colorValue;
         colorText(colors.secondMarker, colorValue); colorsJson["secondMarker"] = colorValue;
+        const RedAlertSettings& redAlert = SettingsService::redAlert();
+        JsonObject redAlertJson = document["redAlert"].to<JsonObject>();
+        redAlertJson["enabled"] = redAlert.enabled;
+        redAlertJson["locations"] = redAlert.locations;
+        redAlertJson["relayUrl"] = redAlert.relayUrl;
         String body;
         body.reserve(480);
         serializeJson(document, body);
@@ -433,6 +458,36 @@ namespace
             sendError(500, "custom colors could not be saved");
             return;
         }
+        sendJson(200, "{\"ok\":true}");
+    }
+
+    void handleRedAlertSettings()
+    {
+        Serial.println("WEB REQUEST: POST /api/red-alert");
+        if (!changesAllowed()) return;
+        RedAlertSettings settings = {};
+        if (!server.hasArg("enabled") || !server.hasArg("locations") || !server.hasArg("relayUrl")) { sendError(400, "missing Red Alert settings"); return; }
+        if (!parseRedAlertSettings(settings))
+        {
+            const String locations = server.arg("locations");
+            const String relayUrl = server.arg("relayUrl");
+            sendError(400, locations.length() >= sizeof(settings.locations)
+                ? "too many selected alert areas" : (relayUrl.length() >= sizeof(settings.relayUrl)
+                    ? "relay URL is too long" : "select areas and configure a relay URL before enabling"));
+            return;
+        }
+        if (!SettingsService::saveRedAlert(settings) || !RedAlertService::settingsChanged())
+        {
+            sendError(500, "Red Alert settings could not be saved"); return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
+    void handleRedAlertSimulation()
+    {
+        Serial.println("WEB REQUEST: POST /api/red-alert/simulate");
+        if (!changesAllowed()) return;
+        if (!RedAlertService::simulate()) { sendError(409, "enable Red Alert mode before simulating"); return; }
         sendJson(200, "{\"ok\":true}");
     }
 
@@ -686,6 +741,8 @@ namespace
         server.on("/api/weather/location", HTTP_POST, handleWeatherLocation);
         server.on("/api/calibration", HTTP_POST, handleCalibration);
         server.on("/api/custom-colors", HTTP_POST, handleCustomColors);
+        server.on("/api/red-alert", HTTP_POST, handleRedAlertSettings);
+        server.on("/api/red-alert/simulate", HTTP_POST, handleRedAlertSimulation);
         server.on("/api/reboot", HTTP_POST, handleReboot);
         server.onNotFound([]() {
             Serial.printf("WEB REQUEST: %s %s\r\n", server.method() == HTTP_POST ? "POST" : "GET", server.uri().c_str());

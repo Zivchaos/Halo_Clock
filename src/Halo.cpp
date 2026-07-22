@@ -11,6 +11,7 @@
 #include "NetworkService.h"
 #include "Oled.h"
 #include "OtaService.h"
+#include "RedAlertService.h"
 #include "SettingsService.h"
 #include "TimeService.h"
 #include "Version.h"
@@ -22,6 +23,9 @@ namespace
 {
     bool ringCalibrationActive = false;
     bool otaDisplayWasReserved = false;
+    bool redAlertWasActive = false;
+    bool redAlertPhase = false;
+    uint32_t redAlertPhaseAt = 0;
     void logDisplayMode(DisplayMode mode)
     {
         Serial.printf("DISPLAY MODE: %s\r\n", DisplayModes::name(mode));
@@ -33,6 +37,7 @@ void Halo::begin()
     Serial.begin(Config::SERIAL_BAUD);
     ringCalibrationActive = false;
     otaDisplayWasReserved = false;
+    redAlertWasActive = false;
     DiagnosticsService::begin();
     SettingsService::begin();
     Button::begin();
@@ -62,6 +67,7 @@ void Halo::begin()
         Clock::begin(selectedDisplayMode);
         OtaService::begin();
         WeatherService::begin();
+        RedAlertService::begin();
         WebService::begin();
     }
     logDisplayMode(selectedDisplayMode);
@@ -91,6 +97,7 @@ void Halo::update()
     }
     otaDisplayWasReserved = otaDisplayReserved;
     WeatherService::update();
+    RedAlertService::update();
     WebService::update();
     if constexpr (Config::ENABLE_WEATHER_OLED)
     {
@@ -117,9 +124,26 @@ void Halo::update()
         }
     }
 
+    const RedAlertData redAlert = RedAlertService::snapshot();
+    if (redAlert.active && !otaDisplayReserved && !ringCalibrationActive)
+    {
+        if (!redAlertWasActive || millis() - redAlertPhaseAt >= 400)
+        {
+            redAlertPhase = !redAlertPhase;
+            redAlertPhaseAt = millis();
+            LedRing::showRedAlert(redAlertPhase);
+        }
+        Oled::redAlert(redAlert.areas, strcmp(redAlert.id, "simulation") == 0);
+    }
+    else if (redAlertWasActive)
+    {
+        Clock::requestRefresh();
+    }
+    redAlertWasActive = redAlert.active;
+
     if constexpr (!Config::ENABLE_RING_CALIBRATION)
     {
-        Clock::update(!otaDisplayReserved && !ringCalibrationActive);
+        Clock::update(!otaDisplayReserved && !ringCalibrationActive && !redAlert.active);
     }
 
     NetworkService::update();

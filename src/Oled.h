@@ -15,4 +15,5 @@ public:
     static void displayMode(DisplayMode mode);
     static void notice(const char* message, DisplayMode mode);
     static void weather(const WeatherData& weather, DisplayMode mode);
+    static void redAlert(const char* area, bool test);
 };

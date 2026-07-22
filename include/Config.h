@@ -68,6 +68,19 @@ namespace Config
     constexpr uint32_t WEATHER_TASK_STACK_SIZE = 8192;
     constexpr bool ENABLE_WEATHER_OLED = true;
 
+    // Optional Israeli Home Front Command companion. This is a visual aid
+    // only; official alerts and instructions always take precedence.
+    constexpr const char* RED_ALERT_API_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
+    constexpr const char* RED_ALERT_DEFAULT_RELAY_URL = "https://api.tzevaadom.co.il/notifications";
+    constexpr uint32_t RED_ALERT_POLL_INTERVAL_MS = 2000;
+    constexpr uint32_t RED_ALERT_FAILURE_BACKOFF_MS = 10000;
+    // Community providers behind CDN/TLS endpoints can take longer than the
+    // local weather service to complete a first connection.
+    constexpr uint32_t RED_ALERT_CONNECT_TIMEOUT_MS = 15000;
+    constexpr uint32_t RED_ALERT_RESPONSE_TIMEOUT_MS = 15000;
+    constexpr size_t RED_ALERT_MAX_RESPONSE_BYTES = 4096;
+    constexpr uint32_t RED_ALERT_TASK_STACK_SIZE = 8192;
+
     // Compatibility contract: keep the legacy namespace so branded upgrades
     // retain brightness, display mode, and automatic NIGHT settings.
     constexpr const char* SETTINGS_NAMESPACE = "REDACTED";
@@ -84,6 +97,7 @@ namespace Config
     constexpr const char* SETTINGS_RING_CLOCKWISE_KEY = "ringCw";
     constexpr const char* SETTINGS_WEATHER_LOCATION_KEY = "weatherLoc";
     constexpr const char* SETTINGS_CUSTOM_COLORS_KEY = "customLed";
+    constexpr const char* SETTINGS_RED_ALERT_KEY = "redAlert";
 
     constexpr uint8_t STATIC_NETWORK_FAILURE_LIMIT = 2;
     constexpr uint32_t STATIC_NETWORK_VALIDATION_TIMEOUT_MS = 45UL * 1000UL;

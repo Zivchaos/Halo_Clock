@@ -189,6 +189,17 @@ Cloud telemetry, forecasts, and remote dashboards are intentionally outside the 
 
 Current firmware: **1.0.0**. Milestone history is recorded in [CHANGELOG.md](CHANGELOG.md); prototype and release tags preserve historical firmware states.
 
+## Red Alert credits
+
+The Israeli Red Alert companion add-on was inspired by and researched with
+these community projects:
+
+- [dmatik/oref-alerts-proxy-ms](https://github.com/dmatik/oref-alerts-proxy-ms)
+- [moshepinhasi/Red_alert_monitor](https://github.com/moshepinhasi/Red_alert_monitor)
+
+HALO CST uses this feature only as a visual aid. Official Home Front Command
+alerts and instructions remain the primary alert channels.
+
 ## Security
 
 HALO CST is designed for a trusted local network. The Web UI and ArduinoOTA are unauthenticated in this release. Do not expose ports 80 or 3232 to the public Internet.

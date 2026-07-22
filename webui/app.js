@@ -139,6 +139,9 @@ function applyStatus(status) {
   text("weatherAge", `${status.weatherStale ? "Stale" : (weatherAvailable ? "Current" : "Unavailable")}${lastUpdate !== "—" ? ` · ${lastUpdate}` : ""}`);
 
   text("diagnosticsSummary", status.wifiConnected && status.otaReady && !status.weatherStale ? "All systems normal" : "Review status");
+  const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? `ACTIVE: ${status.redAlertAreas || "selected area"}` : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}` : (status.redAlertUpdating ? "Checking alert source" : "Monitoring selected areas")));
+  text("redAlertState", alertState);
+  if (!state.busy) $("redAlertEnabled").checked = Boolean(status.redAlertEnabled);
   if (!state.busy) {
     $("mode").value = status.selectedMode;
     $("brightness").value = String(status.brightness);
@@ -146,6 +149,28 @@ function applyStatus(status) {
     $("autoStart").value = status.autoNightStart || "";
     $("autoEnd").value = status.autoNightEnd || "";
   }
+}
+
+function selectedRedAlertAreas() {
+  return Array.from($("redAlertLocations").selectedOptions).map((option) => option.value);
+}
+
+function redAlertSettingsData(enabled = $("redAlertEnabled").checked) {
+  return { enabled: String(enabled), locations: selectedRedAlertAreas().join("\n"), relayUrl: $("redAlertRelayUrl").value.trim() };
+}
+
+function renderRedAlertAreas(filter = "") {
+  const select = $("redAlertLocations");
+  const selected = new Set(selectedRedAlertAreas());
+  const query = filter.trim().toLocaleLowerCase();
+  const catalog = window.RED_ALERT_AREAS || [];
+  const selectedAreas = catalog.filter((area) => selected.has(area.he));
+  const matches = selectedAreas.concat(catalog.filter((area) => !selected.has(area.he) && (!query || area.search.includes(query))).slice(0, Math.max(0, 250 - selectedAreas.length)));
+  select.replaceChildren(...matches.map((area) => {
+    const option = new Option(`${area.en} — ${area.he}`, area.he, false, selected.has(area.he));
+    option.dir = "auto";
+    return option;
+  }));
 }
 
 async function refreshStatus() {
@@ -267,6 +292,7 @@ async function loadCustomization() {
     const calibration = settings.calibration || {};
     const location = settings.weatherLocation || {};
     const colors = settings.customColors || {};
+    const redAlert = settings.redAlert || {};
     $("calibrationOffset").value = String(calibration.zeroOffset ?? 0);
     $("calibrationDirection").value = String(calibration.clockwise !== false);
     $("weatherLatitude").value = Number(location.latitude).toFixed(4);
@@ -279,6 +305,11 @@ async function loadCustomization() {
     Object.entries(colorFields).forEach(([id, key]) => {
       if (/^#[0-9a-f]{6}$/i.test(colors[key] || "")) $(id).value = colors[key];
     });
+    $("redAlertEnabled").checked = Boolean(redAlert.enabled);
+    $("redAlertRelayUrl").value = redAlert.relayUrl || "";
+    const savedAreas = new Set((redAlert.locations || "").split("\n").filter(Boolean));
+    renderRedAlertAreas();
+    Array.from($("redAlertLocations").options).forEach((option) => { option.selected = savedAreas.has(option.value); });
     state.customizationLoaded = true;
     syncControlState();
   } catch (error) {
@@ -380,6 +411,15 @@ $("weatherLocationForm").addEventListener("submit", (event) => {
     longitude: $("weatherLongitude").value
   }, "Weather location saved; refresh scheduled");
 });
+$("redAlertForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void post("/api/red-alert", redAlertSettingsData(), "Red Alert settings saved");
+});
+$("redAlertEnabled").addEventListener("change", (event) => {
+  void post("/api/red-alert", redAlertSettingsData(event.target.checked), event.target.checked ? "Red Alert monitoring enabled" : "Red Alert monitoring disabled");
+});
+$("redAlertSimulate").addEventListener("click", () => { void post("/api/red-alert/simulate", {}, "Red Alert visual test started"); });
+$("redAlertFilter").addEventListener("input", (event) => renderRedAlertAreas(event.target.value));
 
 $("networkLoad").addEventListener("click", () => { void loadNetwork(true); });
 $("networkMode").addEventListener("change", toggleStaticFields);
@@ -401,6 +441,7 @@ $("rebootConfirm").addEventListener("click", () => {
 });
 
 syncControlState();
+renderRedAlertAreas();
 void refreshStatus();
 void loadCustomization();
 window.setInterval(refreshStatus, POLL_INTERVAL_MS);

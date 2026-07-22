@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 WEBUI = ROOT / "webui"
 OUTPUT = ROOT / "src" / "WebUiAssets.h"
 FAVICON = ROOT / "assets" / "branding" / "halo-cst-favicon.svg"
-REQUIRED = (WEBUI / "index.html", WEBUI / "styles.css", WEBUI / "app.js", FAVICON)
+ALERT_AREAS = WEBUI / "red-alert-areas.js"
+REQUIRED = (WEBUI / "index.html", WEBUI / "styles.css", WEBUI / "app.js", ALERT_AREAS, FAVICON)
 STYLE_MARKER = '<link rel="stylesheet" href="styles.css">'
 SCRIPT_MARKER = '<script src="app.js" defer></script>'
 RAW_DELIMITER = "HALOWEB"
@@ -71,7 +72,7 @@ def main() -> None:
 
     html = read_utf8(REQUIRED[0])
     css = read_utf8(REQUIRED[1])
-    javascript = read_utf8(REQUIRED[2])
+    javascript = read_utf8(ALERT_AREAS) + "\n" + read_utf8(REQUIRED[2])
     favicon = read_utf8(FAVICON)
 
     if html.count(STYLE_MARKER) != 1 or html.count(SCRIPT_MARKER) != 1:

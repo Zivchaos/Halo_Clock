@@ -168,6 +168,20 @@ void LedRing::showOtaProgress(uint8_t percent)
     strip.show();
 }
 
+void LedRing::showRedAlert(bool phase)
+{
+    strip.clear();
+    strip.setBrightness(Config::OTA_LED_BRIGHTNESS);
+    if (phase)
+    {
+        for (uint8_t index = 0; index < Hardware::LED_COUNT; ++index)
+        {
+            setLogicalPixel(index, strip.Color(220, 0, 0));
+        }
+    }
+    strip.show();
+}
+
 void LedRing::drawClock(uint8_t hour, uint8_t minute, uint8_t second, DisplayMode mode)
 {
     strip.clear();

@@ -37,6 +37,7 @@ namespace
         {80, 25, 0},
         {80, 80, 0},
         {0, 120, 255}};
+    RedAlertSettings redAlertSettings = {false, "", "https://api.tzevaadom.co.il/notifications"};
 
     constexpr uint32_t NETWORK_RECORD_MAGIC = 0x484E4554UL;
     constexpr uint8_t NETWORK_RECORD_VERSION = 1;
@@ -44,6 +45,8 @@ namespace
     constexpr uint8_t WEATHER_LOCATION_VERSION = 1;
     constexpr uint32_t CUSTOM_COLORS_MAGIC = 0x48434C52UL;
     constexpr uint8_t CUSTOM_COLORS_VERSION = 1;
+    constexpr uint32_t RED_ALERT_MAGIC = 0x4852414CUL;
+    constexpr uint8_t RED_ALERT_VERSION = 1;
 
     struct __attribute__((packed)) PersistedNetworkSettings
     {
@@ -74,6 +77,16 @@ namespace
         uint32_t magic;
         uint8_t version;
         CustomColorSettings colors;
+        uint32_t checksum;
+    };
+
+    struct PersistedRedAlert
+    {
+        uint32_t magic;
+        uint8_t version;
+        uint8_t enabled;
+        char locations[512];
+        char relayUrl[256];
         uint32_t checksum;
     };
 
@@ -163,6 +176,12 @@ namespace
             settings.latitude >= -90.0F && settings.latitude <= 90.0F &&
             settings.longitude >= -180.0F && settings.longitude <= 180.0F;
     }
+
+    bool validRedAlert(const RedAlertSettings& settings)
+    {
+        return settings.locations[sizeof(settings.locations) - 1] == '\0' &&
+            settings.relayUrl[sizeof(settings.relayUrl) - 1] == '\0';
+    }
 }
 
 void SettingsService::begin()
@@ -185,6 +204,7 @@ void SettingsService::begin()
     customColorSettings = {
         {18, 18, 18}, {80, 80, 0}, {255, 80, 0},
         {80, 25, 0}, {80, 80, 0}, {0, 120, 255}};
+    redAlertSettings = RedAlertSettings{false, "", "https://api.tzevaadom.co.il/notifications"};
     bool settingsDefaulted = !storageReady;
 
     if (hasUnsignedByteKey(Config::SETTINGS_BRIGHTNESS_KEY))
@@ -323,6 +343,31 @@ void SettingsService::begin()
             record.checksum == bytesChecksum(&record, offsetof(PersistedCustomColors, checksum)))
         {
             customColorSettings = record.colors;
+        }
+    }
+
+    if (storageReady && preferences.isKey(Config::SETTINGS_RED_ALERT_KEY) &&
+        preferences.getType(Config::SETTINGS_RED_ALERT_KEY) == PT_BLOB &&
+        preferences.getBytesLength(Config::SETTINGS_RED_ALERT_KEY) == sizeof(PersistedRedAlert))
+    {
+        PersistedRedAlert record = {};
+        if (preferences.getBytes(Config::SETTINGS_RED_ALERT_KEY, &record, sizeof(record)) == sizeof(record) &&
+            record.magic == RED_ALERT_MAGIC && record.version == RED_ALERT_VERSION && record.enabled <= 1U &&
+            record.checksum == bytesChecksum(&record, offsetof(PersistedRedAlert, checksum)))
+        {
+            RedAlertSettings loaded = {record.enabled == 1U, "", ""};
+            memcpy(loaded.locations, record.locations, sizeof(loaded.locations));
+            memcpy(loaded.relayUrl, record.relayUrl, sizeof(loaded.relayUrl));
+            loaded.locations[sizeof(loaded.locations) - 1] = '\0';
+            loaded.relayUrl[sizeof(loaded.relayUrl) - 1] = '\0';
+            if (validRedAlert(loaded))
+            {
+                if (loaded.relayUrl[0] == '\0')
+                {
+                    snprintf(loaded.relayUrl, sizeof(loaded.relayUrl), "%s", Config::RED_ALERT_DEFAULT_RELAY_URL);
+                }
+                redAlertSettings = loaded;
+            }
         }
     }
 
@@ -555,5 +600,27 @@ bool SettingsService::saveCustomColors(const CustomColorSettings& settings)
     }
     customColorSettings = settings;
     Serial.println("CUSTOM LED COLORS SAVED");
+    return true;
+}
+
+const RedAlertSettings& SettingsService::redAlert()
+{
+    return redAlertSettings;
+}
+
+bool SettingsService::saveRedAlert(const RedAlertSettings& settings)
+{
+    if (!storageReady || !validRedAlert(settings)) return false;
+    if (memcmp(&settings, &redAlertSettings, sizeof(settings)) == 0) return true;
+    PersistedRedAlert record = {};
+    record.magic = RED_ALERT_MAGIC;
+    record.version = RED_ALERT_VERSION;
+    record.enabled = settings.enabled ? 1U : 0U;
+    memcpy(record.locations, settings.locations, sizeof(record.locations));
+    memcpy(record.relayUrl, settings.relayUrl, sizeof(record.relayUrl));
+    record.checksum = bytesChecksum(&record, offsetof(PersistedRedAlert, checksum));
+    if (preferences.putBytes(Config::SETTINGS_RED_ALERT_KEY, &record, sizeof(record)) != sizeof(record)) return false;
+    redAlertSettings = settings;
+    Serial.println("RED ALERT SETTINGS SAVED");
     return true;
 }

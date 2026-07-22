@@ -43,6 +43,13 @@ struct CustomColorSettings
     RgbColor secondMarker;
 };
 
+struct RedAlertSettings
+{
+    bool enabled;
+    char locations[512];
+    char relayUrl[256];
+};
+
 class SettingsService
 {
 public:
@@ -65,4 +72,6 @@ public:
     static bool saveWeatherLocation(const WeatherLocationSettings& settings);
     static const CustomColorSettings& customColors();
     static bool saveCustomColors(const CustomColorSettings& settings);
+    static const RedAlertSettings& redAlert();
+    static bool saveRedAlert(const RedAlertSettings& settings);
 };
