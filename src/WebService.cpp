@@ -26,6 +26,8 @@ namespace
 {
     WebServer server(Config::WEB_PORT);
     bool started = false;
+    bool routesConfigured = false;
+    bool wifiWasConnected = false;
     bool rebootScheduled = false;
     uint32_t rebootRequestedAt = 0;
 
@@ -695,21 +697,41 @@ namespace
 void WebService::begin()
 {
     started = false;
+    routesConfigured = false;
+    wifiWasConnected = WiFi.status() == WL_CONNECTED;
     rebootScheduled = false;
 }
 
 void WebService::update()
 {
-    if (!started && WiFi.status() == WL_CONNECTED)
+    const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+    if (!wifiConnected && started)
     {
-        configureRoutes();
+        server.stop();
+        started = false;
+        Serial.println("WEB UI: STOPPED (WIFI LOST)");
+    }
+
+    if (wifiConnected && !wifiWasConnected)
+    {
+        Serial.println("WEB UI: WIFI RESTORED; RESTARTING SERVER");
+    }
+    wifiWasConnected = wifiConnected;
+
+    if (!started && wifiConnected)
+    {
+        if (!routesConfigured)
+        {
+            configureRoutes();
+            routesConfigured = true;
+        }
         server.begin();
         started = true;
         Serial.println("WEB UI: STARTED");
         Serial.printf("WEB UI: http://%s.local/\r\n", Product::HOSTNAME);
     }
 
-    if (started && WiFi.status() == WL_CONNECTED)
+    if (started && wifiConnected)
     {
         server.handleClient();
     }

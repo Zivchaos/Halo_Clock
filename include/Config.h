@@ -44,6 +44,9 @@ namespace Config
 
     constexpr uint16_t WEB_PORT = 80;
     constexpr uint32_t WEB_REBOOT_DELAY_MS = 500;
+    // Reboot if the main application loop stops servicing the clock. This
+    // covers a stalled network stack as well as other unexpected loop hangs.
+    constexpr uint32_t WATCHDOG_TIMEOUT_SECONDS = 30;
 
     // Current weather is provided by Open-Meteo without an API key. These
     // checked-in coordinates are the fresh-install default near Greenwich,
