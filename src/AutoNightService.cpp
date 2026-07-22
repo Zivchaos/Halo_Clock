@@ -12,6 +12,14 @@ namespace
     bool manualOverride = false;
     bool waitingLogged = false;
     bool configurationChanged = false;
+    enum class ReportedState : uint8_t
+    {
+        UNKNOWN,
+        WAITING_FOR_TIME,
+        INACTIVE,
+        ACTIVE
+    };
+    ReportedState reportedState = ReportedState::UNKNOWN;
 
     static_assert(Config::AUTO_NIGHT_START_HOUR < 24, "AUTO_NIGHT_START_HOUR must be 0-23");
     static_assert(Config::AUTO_NIGHT_END_HOUR < 24, "AUTO_NIGHT_END_HOUR must be 0-23");
@@ -49,11 +57,24 @@ namespace
 
     void logWaitingForTime()
     {
-        if (!waitingLogged)
+        if (!waitingLogged || reportedState != ReportedState::WAITING_FOR_TIME)
         {
             waitingLogged = true;
+            reportedState = ReportedState::WAITING_FOR_TIME;
             Serial.println("AUTO NIGHT: WAITING FOR VALID TIME");
         }
+    }
+
+    void logScheduledState(bool active)
+    {
+        const ReportedState nextState = active ? ReportedState::ACTIVE : ReportedState::INACTIVE;
+        if (reportedState == nextState)
+        {
+            return;
+        }
+
+        reportedState = nextState;
+        Serial.println(active ? "AUTO NIGHT: ACTIVE" : "AUTO NIGHT: INACTIVE");
     }
 }
 
@@ -64,6 +85,7 @@ void AutoNightService::begin()
     manualOverride = false;
     waitingLogged = false;
     configurationChanged = false;
+    reportedState = ReportedState::UNKNOWN;
 
     if (SettingsService::autoNight().enabled)
     {
@@ -71,7 +93,7 @@ void AutoNightService::begin()
     }
     else
     {
-        Serial.println("AUTO NIGHT: INACTIVE");
+        logScheduledState(false);
     }
 }
 
@@ -89,7 +111,7 @@ AutoNightEvent AutoNightService::update(bool timeValid, const tm& localTime)
         configurationChanged = false;
         if (shouldLog)
         {
-            Serial.println("AUTO NIGHT: INACTIVE");
+            logScheduledState(false);
         }
         return wasScheduledNight ? AutoNightEvent::DEACTIVATED : AutoNightEvent::NONE;
     }
@@ -117,7 +139,7 @@ AutoNightEvent AutoNightService::update(bool timeValid, const tm& localTime)
         manualOverride = false;
         configurationChanged = false;
 
-        Serial.println(scheduledNight ? "AUTO NIGHT: ACTIVE" : "AUTO NIGHT: INACTIVE");
+        logScheduledState(scheduledNight);
         if (scheduledNight != previousScheduledNight)
         {
             return scheduledNight ? AutoNightEvent::ACTIVATED : AutoNightEvent::DEACTIVATED;
