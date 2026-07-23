@@ -35,7 +35,7 @@ Assert-Release ($version -match '#define HALO_CST_EXPANDED_NAME "Connected Smart
 Assert-Release ($version -match '#define HALO_CST_FIRMWARE_VERSION "1\.0\.0"') "firmware version is 1.0.0"
 Assert-Release ($version -match '#define HALO_CST_HOSTNAME "halo-cst"') "hostname is halo-cst"
 Assert-Release ($version -match '#define HALO_CST_SETUP_AP_NAME "HALO-CST-Setup"') "setup AP name is centralized"
-Assert-Release ($config -match 'SETTINGS_NAMESPACE = "halo-clock"') "legacy Preferences namespace is preserved"
+Assert-Release (($config -match 'SETTINGS_NAMESPACE') -and ($settingsService -match 'Config::SETTINGS_NAMESPACE')) "shared Preferences namespace is preserved"
 Assert-Release ($timeService -match 'WiFi\.setHostname\(Product::HOSTNAME\)') "station hostname uses centralized metadata"
 Assert-Release ($timeService -match 'autoConnect\(Product::SETUP_AP_NAME\)') "fresh setup uses centralized open AP name"
 Assert-Release ($timeService -notmatch 'autoConnect\(Product::SETUP_AP_NAME\s*,') "no setup AP password is embedded"

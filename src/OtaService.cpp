@@ -1,11 +1,14 @@
 #include "OtaService.h"
 
 #include <ArduinoOTA.h>
+#include <MD5Builder.h>
+#include <Preferences.h>
 #include <WiFi.h>
 
 #include "Config.h"
 #include "Ledring.h"
 #include "Oled.h"
+#include "OtaAuth.h"
 #include "Version.h"
 
 namespace
@@ -16,6 +19,14 @@ namespace
     uint32_t noticeStartedAt = 0;
     uint32_t noticeDurationMs = 0;
     uint8_t currentProgress = 0;
+    bool sessionEnabled = false;
+    Preferences preferences;
+    char storedPasswordHash[33] = "";
+
+    const char* configuredPasswordHash()
+    {
+        return storedPasswordHash[0] != '\0' ? storedPasswordHash : OtaAuth::passwordHash;
+    }
 
     void startNotice(uint32_t durationMs)
     {
@@ -47,7 +58,13 @@ namespace
 
     void configureOta()
     {
+        if (configuredPasswordHash()[0] == '\0')
+        {
+            Serial.println("OTA DISABLED: password hash not configured");
+            return;
+        }
         ArduinoOTA.setHostname(Product::HOSTNAME);
+        ArduinoOTA.setPasswordHash(configuredPasswordHash());
 
         ArduinoOTA.onStart([]() {
             updating = true;
@@ -101,10 +118,21 @@ void OtaService::begin()
     updating = false;
     noticeVisible = false;
     currentProgress = 0;
+    sessionEnabled = false;
+    storedPasswordHash[0] = '\0';
+    if (preferences.begin(Config::SETTINGS_NAMESPACE, false))
+    {
+        const String saved = preferences.getString("otaHash", "");
+        if (saved.length() == 32) snprintf(storedPasswordHash, sizeof(storedPasswordHash), "%s", saved.c_str());
+    }
 }
 
 void OtaService::update()
 {
+    if (!sessionEnabled || configuredPasswordHash()[0] == '\0')
+    {
+        return;
+    }
     if (!initialized && WiFi.status() == WL_CONNECTED)
     {
         configureOta();
@@ -128,7 +156,7 @@ bool OtaService::isUpdating()
 
 bool OtaService::isReady()
 {
-    return initialized && WiFi.status() == WL_CONNECTED;
+    return sessionEnabled && initialized && WiFi.status() == WL_CONNECTED;
 }
 
 bool OtaService::isDisplayReserved()
@@ -139,4 +167,36 @@ bool OtaService::isDisplayReserved()
 uint8_t OtaService::progressPercent()
 {
     return currentProgress;
+}
+
+bool OtaService::isConfigured()
+{
+    return configuredPasswordHash()[0] != '\0';
+}
+
+bool OtaService::enableForSession(const char* password)
+{
+    if (password == nullptr || password[0] == '\0') return false;
+    MD5Builder digest;
+    digest.begin();
+    digest.add(password);
+    digest.calculate();
+    const String candidate = digest.toString();
+    if (!isConfigured())
+    {
+        if (!preferences.putString("otaHash", candidate)) return false;
+        snprintf(storedPasswordHash, sizeof(storedPasswordHash), "%s", candidate.c_str());
+    }
+    else if (candidate != configuredPasswordHash()) return false;
+    sessionEnabled = true;
+    return true;
+}
+
+bool OtaService::disableForSession()
+{
+    if (updating) return false;
+    if (initialized) ArduinoOTA.end();
+    initialized = false;
+    sessionEnabled = false;
+    return true;
 }

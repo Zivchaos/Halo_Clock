@@ -34,7 +34,7 @@ HALO CST 1.0.0 is the first public release of the Connected Smart Timepiece: a l
 
 ### Known limitations
 
-- HALO CST remains a trusted-LAN device: the WebUI and ArduinoOTA service are unauthenticated and must not be exposed to the public Internet.
+- HALO CST remains a trusted-LAN device: keep the WebUI local, and never expose its ports publicly. ArduinoOTA is disabled by default and requires its administrator password for each enabled session.
 - Hardware enclosure photographs are not yet part of this release; the documented enclosure remains a maker prototype.
 - The supplied WebUI captures are representative desktop views; mobile and physical-prototype imagery can be added in a later release.
 

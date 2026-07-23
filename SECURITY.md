@@ -8,12 +8,12 @@ Security fixes target the latest stable release. Older milestone tags are retain
 
 HALO CST is a local-first maker project intended only for a trusted LAN. Firmware 1.0.0 has:
 
-- an unauthenticated HTTP Web UI and control API on port 80;
-- unauthenticated ArduinoOTA on port 3232;
+- an HTTP Web UI and control API on port 80, with same-origin request checks for state-changing operations;
+- ArduinoOTA on port 3232, disabled by default and protected by an administrator password when enabled for the current session;
 - an open WiFiManager setup access point while provisioning;
 - outbound HTTPS requests to Open-Meteo using configured approximate coordinates.
 
-Do not expose the device to the Internet, forward its ports, or place it on an untrusted network. Use firewall/VLAN isolation where appropriate. Anyone with network access may read status, change settings, reboot the device, or upload compatible firmware over OTA.
+Do not expose the device to the Internet, forward its ports, or place it on an untrusted network. Use firewall/VLAN isolation where appropriate. Anyone with local-network access may read status; physical or network access to a trusted browser session can still change settings and reboot the device. Only an operator who knows the configured OTA administrator password can enable OTA and upload compatible firmware during that session.
 
 ## Reporting a vulnerability
 

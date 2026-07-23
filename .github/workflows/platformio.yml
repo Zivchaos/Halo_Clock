@@ -23,6 +23,18 @@ jobs:
         run: pip install platformio
       - name: Build HALO CST firmware
         run: platformio run --project-conf platformIO.ini
+      - name: Build OTA firmware
+        run: platformio run --project-conf platformIO.ini -e esp32dev_ota
+      - name: Build embedded unit-test targets
+        run: |
+          # These tests target ESP32 hardware. GitHub Actions has no serial
+          # target, so CI compiles each test binary only. Running the suite is
+          # an explicit local hardware step and must never replace a clock's
+          # production firmware accidentally.
+          platformio test --project-conf platformIO.ini -e weather_tests --without-uploading --without-testing
+          platformio test --project-conf platformIO.ini -e diagnostics_tests --without-uploading --without-testing
+          platformio test --project-conf platformIO.ini -e network_tests --without-uploading --without-testing
+          platformio test --project-conf platformIO.ini -e red_alert_tests --without-uploading --without-testing
       - name: Name firmware artifact
         id: firmware
         shell: bash

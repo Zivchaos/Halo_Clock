@@ -10,6 +10,8 @@
 #include "Config.h"
 #include "DiagnosticsService.h"
 #include "SettingsService.h"
+#include "TimeService.h"
+#include "TrustedCertificates.h"
 #include "WeatherProvider.h"
 
 namespace
@@ -101,6 +103,11 @@ namespace
             finishFailure("offline");
             return;
         }
+        if (!TimeService::isSynchronized())
+        {
+            finishFailure("time not synchronized");
+            return;
+        }
 
         char url[512];
         const WeatherLocationSettings location = SettingsService::weatherLocation();
@@ -111,7 +118,7 @@ namespace
         }
 
         WiFiClientSecure client;
-        client.setInsecure();
+        client.setCACert(TrustedCertificates::DEFAULT_PROVIDER_ROOTS);
         HTTPClient http;
         http.setConnectTimeout(Config::WEATHER_CONNECT_TIMEOUT_MS);
         http.setTimeout(Config::WEATHER_RESPONSE_TIMEOUT_MS);
@@ -124,11 +131,20 @@ namespace
         const int statusCode = http.GET();
         if (statusCode != HTTP_CODE_OK)
         {
-            char reason[64];
+            char reason[96];
             if (statusCode < 0)
             {
                 const String description = HTTPClient::errorToString(statusCode);
-                snprintf(reason, sizeof(reason), "request failed: %s", description.c_str());
+                char tlsError[48] = {};
+                client.lastError(tlsError, sizeof(tlsError));
+                if (tlsError[0] != '\0')
+                {
+                    snprintf(reason, sizeof(reason), "request failed: %.20s (%.36s)", description.c_str(), tlsError);
+                }
+                else
+                {
+                    snprintf(reason, sizeof(reason), "request failed: %s", description.c_str());
+                }
             }
             else
             {

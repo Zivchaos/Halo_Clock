@@ -20,6 +20,7 @@ dist/
 .env.*
 !.env.example
 secrets.*
+include/LocalSecrets.h
 *.local
 .DS_Store
 Thumbs.db

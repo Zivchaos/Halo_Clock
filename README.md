@@ -164,17 +164,19 @@ tools/                   Build, API, soak, and release-check scripts
 
 ## Testing
 
-The repository includes PlatformIO weather-parser, diagnostics, and network-configuration tests; Web UI source, API, and soak tests; public-release consistency checks; and a GitHub Actions firmware build.
+The repository includes PlatformIO weather-parser, diagnostics, and network-configuration tests; Web UI source, API, and soak tests; public-release consistency checks; and a GitHub Actions firmware build. CI compiles embedded test targets only—it never uploads test firmware.
 
 ```sh
-pio test -e weather_tests
-pio test -e diagnostics_tests
-pio test -e network_tests
+pio test -e weather_tests --upload-port <dedicated-test-port> --test-port <dedicated-test-port>
+pio test -e diagnostics_tests --upload-port <dedicated-test-port> --test-port <dedicated-test-port>
+pio test -e network_tests --upload-port <dedicated-test-port> --test-port <dedicated-test-port>
 ```
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/test-public-release.ps1
 ```
+
+Never run embedded tests against a production clock: they upload test firmware. To reproduce CI's safe compile-only validation, add `--without-uploading --without-testing`.
 
 ## Roadmap
 
@@ -202,7 +204,9 @@ alerts and instructions remain the primary alert channels.
 
 ## Security
 
-HALO CST is designed for a trusted local network. The Web UI and ArduinoOTA are unauthenticated in this release. Do not expose ports 80 or 3232 to the public Internet.
+HALO CST is designed for a trusted local network. The Web UI has local-network controls protected against cross-site requests. ArduinoOTA is disabled by default and requires an administrator password before it can be enabled for the current session. Do not expose ports 80 or 3232 to the public Internet.
+
+Outbound weather and the default Red Alert relay use certificate validation. A custom relay must present a certificate that chains to one of the firmware's trusted provider roots, otherwise HALO will reject it.
 
 Read [SECURITY.md](SECURITY.md) before deploying or reporting a vulnerability.
 

@@ -19,7 +19,7 @@ Halo
 
 ## Main update loop
 
-The normal loop has no intentional delays. Button debounce, clock redraw, scheduled NIGHT, notices, weather scheduling, Web requests, and reboot confirmation use `millis()` or event state. `ArduinoOTA.handle()` is called continuously after Wi-Fi becomes available. The only deliberate visual delay is the startup LED sweep before runtime services begin.
+The normal loop has no intentional delays. Button debounce, clock redraw, scheduled NIGHT, notices, weather scheduling, Web requests, and reboot confirmation use `millis()` or event state. `ArduinoOTA.handle()` is called only while an operator has enabled the password-protected OTA session. The only deliberate visual delay is the startup LED sweep before runtime services begin.
 
 Weather HTTPS work runs in one FreeRTOS task at a time. The service prevents overlapping requests, schedules retries, and commits parsed data only after a complete valid response. This keeps the clock, button, Web server, and OTA service responsive.
 

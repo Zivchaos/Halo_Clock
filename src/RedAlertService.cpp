@@ -11,6 +11,8 @@
 #include "Config.h"
 #include "RedAlertProvider.h"
 #include "SettingsService.h"
+#include "TrustedCertificates.h"
+#include "WeatherService.h"
 
 namespace
 {
@@ -23,6 +25,7 @@ namespace
     RedAlertData current;
     uint32_t nextAttemptAt = 0;
     uint32_t simulationUntil = 0;
+    bool lowHeapSuspended = false;
 
     void copyText(char* destination, size_t size, const char* source)
     {
@@ -42,17 +45,30 @@ namespace
         Serial.printf("RED ALERT ERROR: %s\r\n", reason);
     }
 
+    void suspendForLowHeap()
+    {
+        xSemaphoreTake(mutex, portMAX_DELAY);
+        current.updating = false;
+        current.active = false;
+        current.stale = true;
+        lowHeapSuspended = true;
+        copyText(current.error, sizeof(current.error), "live polling suspended: low heap");
+        xSemaphoreGive(mutex);
+        Serial.printf("RED ALERT: polling suspended at %lu free heap\r\n", static_cast<unsigned long>(ESP.getFreeHeap()));
+    }
+
     void requestTask(void*)
     {
-        WiFiClientSecure client;
-        client.setInsecure();
+        WiFiClientSecure relayClient;
+        relayClient.setCACert(TrustedCertificates::DEFAULT_PROVIDER_ROOTS);
         HTTPClient http;
         http.setConnectTimeout(Config::RED_ALERT_CONNECT_TIMEOUT_MS);
         http.setTimeout(Config::RED_ALERT_RESPONSE_TIMEOUT_MS);
         const char* relayUrl = SettingsService::redAlert().relayUrl;
-        if (!http.begin(client, relayUrl)) { finishFailure("relay HTTPS setup failed"); vTaskDelete(nullptr); return; }
-        // Do not leave a persistent CDN connection open.  This makes small
-        // responses such as Tzeva Adom's `[]` deterministic on the ESP32.
+        if (!http.begin(relayClient, relayUrl)) { finishFailure("relay HTTPS setup failed"); vTaskDelete(nullptr); return; }
+        // Always close this community-relay connection after a complete
+        // response. A long-lived TLS session was observed to stall Wi-Fi on
+        // the target ESP32; the heap guard limits per-request churn instead.
         http.useHTTP10(true);
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         http.addHeader("Referer", "https://www.oref.org.il/");
@@ -116,6 +132,7 @@ void RedAlertService::begin()
     current.enabled = SettingsService::redAlert().enabled;
     copyText(current.error, sizeof(current.error), current.enabled ? "waiting for Wi-Fi" : "disabled");
     nextAttemptAt = millis();
+    lowHeapSuspended = false;
     xSemaphoreGive(mutex);
 }
 
@@ -125,6 +142,18 @@ void RedAlertService::update()
     const bool enabled = settings.enabled;
     xSemaphoreTake(mutex, portMAX_DELAY);
     current.enabled = enabled;
+    if constexpr (!Config::RED_ALERT_LIVE_POLLING_ENABLED)
+    {
+        if (simulationUntil == 0)
+        {
+            current.active = false;
+            current.stale = false;
+            current.updating = false;
+            copyText(current.error, sizeof(current.error), enabled ? "live polling paused for stability" : "disabled");
+        }
+        xSemaphoreGive(mutex);
+        return;
+    }
     if ((!enabled || settings.relayUrl[0] == '\0') && simulationUntil == 0)
     {
         current.active = false;
@@ -137,11 +166,24 @@ void RedAlertService::update()
         simulationUntil = 0;
         current.active = false;
     }
-    const bool due = enabled && settings.relayUrl[0] != '\0' && simulationUntil == 0 && !current.updating && static_cast<int32_t>(millis() - nextAttemptAt) >= 0;
+    const bool due = enabled && settings.relayUrl[0] != '\0' && simulationUntil == 0 && !lowHeapSuspended && !current.updating && static_cast<int32_t>(millis() - nextAttemptAt) >= 0;
     if (due) current.updating = true;
     xSemaphoreGive(mutex);
     if (!due) return;
     if (WiFi.status() != WL_CONNECTED) { finishFailure("offline"); return; }
+    if (WeatherService::snapshot().updating)
+    {
+        xSemaphoreTake(mutex, portMAX_DELAY);
+        current.updating = false;
+        nextAttemptAt = millis() + 1000UL;
+        xSemaphoreGive(mutex);
+        return;
+    }
+    if (ESP.getFreeHeap() < Config::RED_ALERT_MIN_FREE_HEAP_BYTES)
+    {
+        suspendForLowHeap();
+        return;
+    }
     if (xTaskCreate(requestTask, "halo-alert", Config::RED_ALERT_TASK_STACK_SIZE, nullptr, 1, nullptr) != pdPASS) finishFailure("task start failed");
 }
 
@@ -152,7 +194,13 @@ RedAlertData RedAlertService::snapshot()
 
 bool RedAlertService::settingsChanged()
 {
-    xSemaphoreTake(mutex, portMAX_DELAY); current.active = false; current.stale = false; nextAttemptAt = millis(); xSemaphoreGive(mutex); return true;
+    xSemaphoreTake(mutex, portMAX_DELAY);
+    current.active = false;
+    current.stale = false;
+    lowHeapSuspended = false;
+    nextAttemptAt = millis();
+    xSemaphoreGive(mutex);
+    return true;
 }
 
 bool RedAlertService::simulate()
