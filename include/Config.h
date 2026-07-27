@@ -120,6 +120,11 @@ namespace Config
     constexpr bool ENABLE_RING_CALIBRATION = false;
 
     constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 300;
+    // Recover from a station interface that remains disconnected despite
+    // ESP32 auto-reconnect. These do not erase Wi-Fi credentials.
+    constexpr uint32_t WIFI_RECONNECT_INTERVAL_MS = 15UL * 1000UL;
+    constexpr uint32_t WIFI_STACK_RESET_AFTER_MS = 60UL * 1000UL;
+    constexpr uint32_t WIFI_REBOOT_AFTER_MS = 3UL * 60UL * 1000UL;
 
     constexpr const char* NTP_SERVER_PRIMARY = "pool.ntp.org";
     constexpr const char* NTP_SERVER_SECONDARY = "time.nist.gov";
