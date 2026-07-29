@@ -2,6 +2,27 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [Unreleased]
+
+### Red Alert hardening checkpoint
+
+- Kept the optional Israeli Red Alert companion disabled by default, with
+  persisted selected alert areas and a configurable HTTPS relay.
+- Corrected request cleanup so successful live checks release their TLS and
+  response resources before the worker task exits.
+- Added request counts, success/failure totals, duration, recovered heap, and
+  per-request low-heap telemetry to the local Web UI.
+- Added a minute-transition request guard and isolated live TLS work on the
+  ESP32 networking core to protect CLASSIC LED rendering.
+- Added automated coverage for polling gates, retry timing, low-heap safety,
+  minute-transition deferral, timer wraparound, parsing, and default-off
+  behavior.
+- Validated a nearly eight-hour manually enabled live soak: 1,594 successful
+  relay checks out of 1,597, stable clock/Web UI behavior, and no LED glitches.
+
+See [docs/RED_ALERT.md](docs/RED_ALERT.md) for operating limits and the
+official-alert disclaimer.
+
 ## [1.0.0] — 2026-07-20
 
 HALO CST 1.0.0 is the first public release of the Connected Smart Timepiece: a local-first ESP32 clock with a custom LED display engine, responsive embedded WebUI, persistent settings, weather, diagnostics, and OTA support.

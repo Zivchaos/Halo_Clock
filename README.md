@@ -202,6 +202,12 @@ these community projects:
 HALO CST uses this feature only as a visual aid. Official Home Front Command
 alerts and instructions remain the primary alert channels.
 
+Live polling is disabled by default. The companion uses a configurable HTTPS
+relay and must be enabled manually after selecting every applicable official
+alert area. Community-relay failures affect only HALO's visual aid, never the
+official warning channels. See [Red Alert companion operation and validated
+limits](docs/RED_ALERT.md) before enabling it.
+
 ## Security
 
 HALO CST is designed for a trusted local network. The Web UI has local-network controls protected against cross-site requests. ArduinoOTA is disabled by default and requires an administrator password before it can be enabled for the current session. Do not expose ports 80 or 3232 to the public Internet.

@@ -366,6 +366,7 @@ namespace
         document["condition"] = weather.condition; document["weatherLastUpdate"] = weather.lastSuccessfulUpdateEpoch; document["weatherError"] = weather.error;
         document["redAlertEnabled"] = redAlert.enabled; document["redAlertActive"] = redAlert.active; document["redAlertStale"] = redAlert.stale; document["redAlertUpdating"] = redAlert.updating; document["redAlertAreas"] = redAlert.areas; document["redAlertError"] = redAlert.error;
         document["redAlertHasSuccessfulCheck"] = redAlert.lastSuccessfulUpdateMs != 0; document["redAlertLastCheckAgeSeconds"] = redAlert.lastSuccessfulUpdateMs == 0 ? 0 : (millis() - redAlert.lastSuccessfulUpdateMs) / 1000UL; document["redAlertFailureCount"] = redAlert.consecutiveFailures;
+        document["redAlertRequestCount"] = redAlert.requestCount; document["redAlertSuccessCount"] = redAlert.successCount; document["redAlertTotalFailureCount"] = redAlert.failureCount; document["redAlertLastRequestDurationMs"] = redAlert.lastRequestDurationMs; document["redAlertLastRequestFreeHeap"] = redAlert.lastRequestFreeHeap; document["redAlertLastRequestMinimumFreeHeap"] = redAlert.lastRequestMinimumFreeHeap;
         String body; body.reserve(1800);
         if (serializeJson(document, body) == 0) { sendError(500, "status serialization failed"); return; }
         sendJson(200, body.c_str());

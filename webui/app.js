@@ -144,7 +144,10 @@ function applyStatus(status) {
   const failureSuffix = Number(status.redAlertFailureCount || 0) > 1 ? ` (${status.redAlertFailureCount} failed checks)` : "";
   const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? (status.redAlertTest ? "TEST: amber simulation only" : `ACTIVE: ${status.redAlertAreas || "selected area"}`) : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}${failureSuffix}.${lastCheck}` : (status.redAlertUpdating ? `Checking alert source.${lastCheck}` : `Monitoring selected areas.${lastCheck}`)));
   text("redAlertState", alertState);
-  const providerState = !status.redAlertEnabled ? "Provider: disabled" : (status.redAlertTest ? "Provider: test in progress" : (status.redAlertStale ? "Provider: unavailable — retrying" : (status.redAlertUpdating ? "Provider: checking" : "Provider: healthy")));
+  const requestTelemetry = Number(status.redAlertRequestCount || 0) > 0
+    ? ` · ${status.redAlertSuccessCount || 0}/${status.redAlertRequestCount} checks · ${Math.round(Number(status.redAlertLastRequestDurationMs || 0) / 100) / 10}s · heap ${formatBytes(status.redAlertLastRequestFreeHeap)} (low ${formatBytes(status.redAlertLastRequestMinimumFreeHeap)})`
+    : "";
+  const providerState = !status.redAlertEnabled ? "Provider: disabled" : (status.redAlertTest ? "Provider: test in progress" : (status.redAlertStale ? `Provider: unavailable — retrying${requestTelemetry}` : (status.redAlertUpdating ? "Provider: checking" : `Provider: healthy${requestTelemetry}`)));
   text("redAlertProvider", providerState);
   if (!state.busy) $("redAlertEnabled").checked = Boolean(status.redAlertEnabled);
   if (!state.busy) {
@@ -195,9 +198,9 @@ async function restoreSettingsBackup(file) {
   } catch (error) { showFeedback(error.message || "Invalid settings backup", "error"); }
 }
 
-function renderRedAlertAreas(filter = "") {
+function renderRedAlertAreas(filter = "", selectedOverride = null) {
   const select = $("redAlertLocations");
-  const selected = new Set(selectedRedAlertAreas());
+  const selected = selectedOverride || new Set(selectedRedAlertAreas());
   const query = filter.trim().toLocaleLowerCase();
   const catalog = window.RED_ALERT_AREAS || [];
   const selectedAreas = catalog.filter((area) => selected.has(area.he));
@@ -345,8 +348,7 @@ async function loadCustomization() {
     $("redAlertEnabled").checked = Boolean(redAlert.enabled);
     $("redAlertRelayUrl").value = redAlert.relayUrl || "";
     const savedAreas = new Set((redAlert.locations || "").split("\n").filter(Boolean));
-    renderRedAlertAreas();
-    Array.from($("redAlertLocations").options).forEach((option) => { option.selected = savedAreas.has(option.value); });
+    renderRedAlertAreas("", savedAreas);
     updateRedAlertSelectionHelp();
     state.customizationLoaded = true;
     syncControlState();

@@ -72,6 +72,7 @@ namespace Config
     // only; official alerts and instructions always take precedence.
     constexpr const char* RED_ALERT_API_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
     constexpr const char* RED_ALERT_DEFAULT_RELAY_URL = "https://api.tzevaadom.co.il/notifications";
+    constexpr bool RED_ALERT_DEFAULT_ENABLED = false;
     // Community HTTPS relays are polled conservatively so they remain a
     // secondary visual aid without competing with clock rendering or weather.
     constexpr uint32_t RED_ALERT_POLL_INTERVAL_MS = 15000;
@@ -80,8 +81,12 @@ namespace Config
     // local weather service to complete a first connection.
     constexpr uint32_t RED_ALERT_CONNECT_TIMEOUT_MS = 15000;
     constexpr uint32_t RED_ALERT_RESPONSE_TIMEOUT_MS = 15000;
+    // Keep TLS setup away from the clock's full redraw at the minute boundary.
+    constexpr uint8_t RED_ALERT_MINUTE_TRANSITION_GUARD_SECONDS = 3;
     constexpr size_t RED_ALERT_MAX_RESPONSE_BYTES = 4096;
     constexpr uint32_t RED_ALERT_TASK_STACK_SIZE = 8192;
+    // Keep TLS work off the Arduino loop core, which owns display rendering.
+    constexpr BaseType_t RED_ALERT_TASK_CORE = 0;
     // Stop live polling before TLS allocation pressure can affect rendering.
     // A reboot resets this guard; the saved Red Alert setting remains unchanged.
     constexpr uint32_t RED_ALERT_MIN_FREE_HEAP_BYTES = 160UL * 1024UL;
