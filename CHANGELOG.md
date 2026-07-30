@@ -2,7 +2,7 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
-## [Unreleased]
+## [1.1.0-israel-rc1] â€” 2026-07-30
 
 ### Red Alert hardening checkpoint
 
@@ -17,8 +17,9 @@ Notable project milestones are recorded here. HALO CST follows semantic versioni
 - Added automated coverage for polling gates, retry timing, low-heap safety,
   minute-transition deferral, timer wraparound, parsing, and default-off
   behavior.
-- Validated a nearly eight-hour manually enabled live soak: 1,594 successful
-  relay checks out of 1,597, stable clock/Web UI behavior, and no LED glitches.
+- Completed a 24-hour manually enabled live soak: 5,028 successful relay
+  checks out of 5,050 (99.56%), stable clock/Web UI behavior, saved zones,
+  and no LED glitches.
 
 See [docs/RED_ALERT.md](docs/RED_ALERT.md) for operating limits and the
 official-alert disclaimer.

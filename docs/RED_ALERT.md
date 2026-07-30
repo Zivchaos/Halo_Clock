@@ -37,15 +37,15 @@ rendering, weather, and the Web UI active:
 
 | Measure | Observed result |
 | --- | --- |
-| Live soak duration | Nearly 8 hours |
-| Successful relay checks | 1,594 of 1,597 (99.8%) |
-| Typical check duration | 2.1 seconds |
+| Live soak duration | More than 24 hours |
+| Successful relay checks | 5,028 of 5,050 (99.56%) |
+| Typical check duration | 2.0 seconds |
 | Recovered heap after a check | 201.9 KiB |
 | Lowest observed request heap | 160.5 KiB |
 | Visual/network result | No LED glitches; clock and Web UI remained healthy |
 
-The three missed provider checks were transient community-source retries and
-did not affect clock or Web UI operation. This is prototype validation, not a
+The 22 missed provider checks were transient community-source retries and did
+not affect clock or Web UI operation. This is prototype validation, not a
 guarantee of alert delivery, timeliness, provider availability, or suitability
 for life-safety use.
 
