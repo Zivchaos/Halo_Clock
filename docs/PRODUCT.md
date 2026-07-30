@@ -21,7 +21,7 @@ Time should be beautiful, readable, calm, and locally controlled. The LED ring c
 
 - Product: HALO CST
 - Expanded name: Connected Smart Timepiece
-- Firmware: 1.1.0-israel-rc1 (Israeli Red Alert release candidate)
+- Firmware: 1.1.0-israel-rc2 (Israeli Red Alert release candidate)
 - Hostname and OTA target: `halo-cst`
 - Setup access point: `HALO-CST-Setup`
 - Local dashboard: `http://halo-cst.local`

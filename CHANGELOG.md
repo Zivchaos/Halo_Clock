@@ -2,6 +2,13 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [1.1.0-israel-rc2] â€” 2026-07-30
+
+### Release automation
+
+- Corrected immutable-release publishing order: build the tagged source,
+  attach the firmware to a draft release, then publish the release.
+
 ## [1.1.0-israel-rc1] â€” 2026-07-30
 
 ### Red Alert hardening checkpoint

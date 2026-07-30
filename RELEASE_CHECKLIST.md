@@ -39,7 +39,8 @@
 - [ ] Release notes and artifacts are prepared without secrets.
 - [ ] Use a `v*` tag for the standard firmware, or an
   `israeli-red-alert-v*` tag for the Israeli Red Alert branch.
-- [ ] Publish the GitHub Release from that tag; the release workflow builds
-  the tagged source and attaches the correctly named `.bin` automatically.
+- [ ] Pushing the approved tag starts the release workflow. It builds the
+  tagged source, creates a draft release, attaches the correctly named `.bin`,
+  and then publishes the release automatically.
 - [ ] Final release tag is created only after explicit approval.
 - [ ] Repository visibility is changed only by an authorized maintainer.
