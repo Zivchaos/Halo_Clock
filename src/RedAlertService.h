@@ -9,6 +9,13 @@ struct RedAlertData
     bool stale = false;
     bool updating = false;
     uint32_t lastSuccessfulUpdateMs = 0;
+    uint32_t requestCount = 0;
+    uint32_t successCount = 0;
+    uint32_t failureCount = 0;
+    uint32_t lastRequestStartedMs = 0;
+    uint32_t lastRequestDurationMs = 0;
+    uint32_t lastRequestFreeHeap = 0;
+    uint32_t lastRequestMinimumFreeHeap = 0;
     uint8_t consecutiveFailures = 0;
     char id[48] = "";
     char title[48] = "";

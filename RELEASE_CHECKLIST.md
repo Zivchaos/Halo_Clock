@@ -12,8 +12,8 @@
 
 - [ ] `pio run` succeeds with zero project-code warnings.
 - [ ] `pio run -e esp32dev_ota` succeeds.
-- [ ] Weather parser embedded tests pass.
-- [ ] Diagnostics embedded tests pass.
+- [ ] All embedded test targets compile in CI with `--without-uploading --without-testing`.
+- [ ] Hardware test suites are run only on a dedicated test ESP32, with an explicit test/upload port.
 - [ ] Full Web UI/API suite passes.
 - [ ] Weather hardware/API regression suite passes.
 - [ ] Public-release metadata/hygiene audit passes.
@@ -26,8 +26,9 @@
 - [ ] Button short/long presses retain expected behavior.
 - [ ] Web UI is reachable at `halo-cst.local` and controls stay synchronized.
 - [ ] Weather fetch/cache behavior works.
+- [ ] Weather HTTPS certificate validation succeeds after NTP synchronization.
 - [ ] Automatic NIGHT and brightness restoration work.
-- [ ] Real ArduinoOTA upload succeeds with OLED/LED progress and normal post-reboot rendering.
+- [ ] OTA is enabled from the Web UI with its administrator password; a real OTA upload succeeds with OLED/LED progress and normal post-reboot rendering.
 - [ ] Existing Wi-Fi credentials and Preferences survive a compatible upgrade.
 - [ ] Fresh setup path is validated on an erased test device or explicitly documented as a safe simulation.
 

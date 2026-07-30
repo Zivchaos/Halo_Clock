@@ -19,6 +19,9 @@ namespace
     bool changed = false;
     bool ntpConfigured = false;
     wl_status_t previousWifiStatus = WL_IDLE_STATUS;
+    uint32_t wifiDisconnectedAt = 0;
+    uint32_t lastReconnectAttemptAt = 0;
+    bool wifiStackReset = false;
     constexpr time_t MINIMUM_VALID_EPOCH = 1704067200; // 2024-01-01 UTC
 
     void configureNtp()
@@ -55,6 +58,9 @@ void TimeService::begin()
     Oled::status("Connecting WiFi", Product::SETUP_AP_NAME);
     wifiManager.autoConnect(Product::SETUP_AP_NAME);
     previousWifiStatus = WiFi.status();
+    wifiDisconnectedAt = previousWifiStatus == WL_CONNECTED ? 0 : millis();
+    lastReconnectAttemptAt = 0;
+    wifiStackReset = false;
 }
 
 void TimeService::update()
@@ -80,6 +86,45 @@ void TimeService::update()
             Serial.println("[WIFI] Connection lost; reconnecting");
         }
         previousWifiStatus = status;
+    }
+
+    if (status == WL_CONNECTED)
+    {
+        wifiDisconnectedAt = 0;
+        wifiStackReset = false;
+    }
+    else
+    {
+        const uint32_t nowMs = millis();
+        if (wifiDisconnectedAt == 0)
+        {
+            wifiDisconnectedAt = nowMs;
+            lastReconnectAttemptAt = 0;
+        }
+
+        if (lastReconnectAttemptAt == 0 || nowMs - lastReconnectAttemptAt >= Config::WIFI_RECONNECT_INTERVAL_MS)
+        {
+            lastReconnectAttemptAt = nowMs;
+            Serial.printf("[WIFI] Reconnect attempt; status %d\r\n", static_cast<int>(status));
+            WiFi.reconnect();
+        }
+
+        const uint32_t disconnectedFor = nowMs - wifiDisconnectedAt;
+        if (!wifiStackReset && disconnectedFor >= Config::WIFI_STACK_RESET_AFTER_MS)
+        {
+            wifiStackReset = true;
+            Serial.println("[WIFI] Resetting station interface after prolonged disconnect");
+            WiFi.disconnect(false, false);
+            WiFi.mode(WIFI_OFF);
+            WiFi.mode(WIFI_STA);
+            WiFi.setHostname(Product::HOSTNAME);
+            WiFi.reconnect();
+        }
+        else if (disconnectedFor >= Config::WIFI_REBOOT_AFTER_MS)
+        {
+            Serial.println("[WIFI] Rebooting after unrecoverable disconnect");
+            ESP.restart();
+        }
     }
 
     if (status == WL_CONNECTED && !ntpConfigured)

@@ -11,4 +11,7 @@ public:
     static bool isReady();
     static bool isDisplayReserved();
     static uint8_t progressPercent();
+    static bool enableForSession(const char* password);
+    static bool disableForSession();
+    static bool isConfigured();
 };

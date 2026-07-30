@@ -85,7 +85,7 @@ function applyStatus(status) {
   setConnectionState(Boolean(status.wifiConnected));
 
   text("clock", status.time || "--:--:--");
-  text("clockDate", new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }));
+  text("clockDate", status.date || "Time unavailable");
   text("clockModeCaption", `${status.effectiveMode || "—"} rendering`);
   text("clockNightCaption", `NIGHT ${status.autoNightActive ? "active" : "scheduled"} · ${status.autoNightStart || "—"}–${status.autoNightEnd || "—"}`);
 
@@ -108,7 +108,8 @@ function applyStatus(status) {
   text("brightnessText", status.brightness);
   text("quickMode", status.selectedMode);
   text("quickBrightness", `Level ${status.brightness}`);
-  $("brightnessTrack").style.width = `${Math.min(100, Math.max(0, Number(status.brightness) / 80 * 100))}%`;
+  const maximumBrightness = Number(status.brightnessMaximum) || Number(status.brightness) || 1;
+  $("brightnessTrack").style.width = `${Math.min(100, Math.max(0, Number(status.brightness) / maximumBrightness * 100))}%`;
   text("override", status.manualOverride ? "Active" : "None");
   text("autoState", status.autoNightEnabled ? (status.autoNightActive ? "Active" : "Enabled") : "Disabled");
   text("schedule", `${status.autoNightStart || "—"}–${status.autoNightEnd || "—"}`);
@@ -141,8 +142,13 @@ function applyStatus(status) {
   text("diagnosticsSummary", status.wifiConnected && status.otaReady && !status.weatherStale ? "All systems normal" : "Review status");
   const lastCheck = status.redAlertHasSuccessfulCheck ? ` Last successful check ${Number(status.redAlertLastCheckAgeSeconds || 0)}s ago.` : "";
   const failureSuffix = Number(status.redAlertFailureCount || 0) > 1 ? ` (${status.redAlertFailureCount} failed checks)` : "";
-  const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? `ACTIVE: ${status.redAlertAreas || "selected area"}` : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}${failureSuffix}.${lastCheck}` : (status.redAlertUpdating ? `Checking alert source.${lastCheck}` : `Monitoring selected areas.${lastCheck}`)));
+  const alertState = !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? (status.redAlertTest ? "TEST: amber simulation only" : `ACTIVE: ${status.redAlertAreas || "selected area"}`) : (status.redAlertStale ? `Unavailable: ${status.redAlertError || "source stale"}${failureSuffix}.${lastCheck}` : (status.redAlertUpdating ? `Checking alert source.${lastCheck}` : `Monitoring selected areas.${lastCheck}`)));
   text("redAlertState", alertState);
+  const requestTelemetry = Number(status.redAlertRequestCount || 0) > 0
+    ? ` · ${status.redAlertSuccessCount || 0}/${status.redAlertRequestCount} checks · ${Math.round(Number(status.redAlertLastRequestDurationMs || 0) / 100) / 10}s · heap ${formatBytes(status.redAlertLastRequestFreeHeap)} (low ${formatBytes(status.redAlertLastRequestMinimumFreeHeap)})`
+    : "";
+  const providerState = !status.redAlertEnabled ? "Provider: disabled" : (status.redAlertTest ? "Provider: test in progress" : (status.redAlertStale ? `Provider: unavailable — retrying${requestTelemetry}` : (status.redAlertUpdating ? "Provider: checking" : `Provider: healthy${requestTelemetry}`)));
+  text("redAlertProvider", providerState);
   if (!state.busy) $("redAlertEnabled").checked = Boolean(status.redAlertEnabled);
   if (!state.busy) {
     $("mode").value = status.selectedMode;
@@ -153,17 +159,48 @@ function applyStatus(status) {
   }
 }
 
+function isIpv4(value) {
+  const parts = value.split(".");
+  return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
+}
+
 function selectedRedAlertAreas() {
   return Array.from($("redAlertLocations").selectedOptions).map((option) => option.value);
+}
+
+function updateRedAlertSelectionHelp() {
+  const count = selectedRedAlertAreas().length;
+  text("redAlertSelectionHelp", `${count} ${count === 1 ? "area" : "areas"} selected. Use Ctrl/Cmd-click to select multiple areas.`);
 }
 
 function redAlertSettingsData(enabled = $("redAlertEnabled").checked) {
   return { enabled: String(enabled), locations: selectedRedAlertAreas().join("\n"), relayUrl: $("redAlertRelayUrl").value.trim() };
 }
 
-function renderRedAlertAreas(filter = "") {
+function downloadSettingsBackup() {
+  void api("/api/settings/export").then((backup) => {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([`${JSON.stringify(backup, null, 2)}\n`], { type: "application/json" }));
+    link.download = "halo-cst-settings.json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showFeedback("Settings backup downloaded");
+  }).catch((error) => showFeedback(error.message, "error"));
+}
+
+async function restoreSettingsBackup(file) {
+  if (!file) return;
+  if (file.size > 1800) { showFeedback("Settings backup is too large", "error"); return; }
+  try {
+    const backup = await file.text();
+    JSON.parse(backup);
+    await post("/api/settings/import", { backup }, "Settings restored. HALO is rebooting.");
+  } catch (error) { showFeedback(error.message || "Invalid settings backup", "error"); }
+}
+
+function renderRedAlertAreas(filter = "", selectedOverride = null) {
   const select = $("redAlertLocations");
-  const selected = new Set(selectedRedAlertAreas());
+  const selected = selectedOverride || new Set(selectedRedAlertAreas());
   const query = filter.trim().toLocaleLowerCase();
   const catalog = window.RED_ALERT_AREAS || [];
   const selectedAreas = catalog.filter((area) => selected.has(area.he));
@@ -173,6 +210,7 @@ function renderRedAlertAreas(filter = "") {
     option.dir = "auto";
     return option;
   }));
+  updateRedAlertSelectionHelp();
 }
 
 async function refreshStatus() {
@@ -191,7 +229,7 @@ async function refreshStatus() {
 async function post(path, data, successMessage = "Saved") {
   setBusy(true);
   try {
-    await api(path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(data) });
+    await api(path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Halo-Request": "1" }, body: new URLSearchParams(data) });
     showFeedback(successMessage);
     await refreshStatus();
     return true;
@@ -310,8 +348,8 @@ async function loadCustomization() {
     $("redAlertEnabled").checked = Boolean(redAlert.enabled);
     $("redAlertRelayUrl").value = redAlert.relayUrl || "";
     const savedAreas = new Set((redAlert.locations || "").split("\n").filter(Boolean));
-    renderRedAlertAreas();
-    Array.from($("redAlertLocations").options).forEach((option) => { option.selected = savedAreas.has(option.value); });
+    renderRedAlertAreas("", savedAreas);
+    updateRedAlertSelectionHelp();
     state.customizationLoaded = true;
     syncControlState();
   } catch (error) {
@@ -348,9 +386,16 @@ async function applyNetwork() {
     primaryDns: $("networkDns1").value.trim(),
     secondaryDns: $("networkDns2").value.trim()
   };
+  if (!reset && data.mode === "STATIC") {
+    const required = [data.ip, data.gateway, data.subnet, data.primaryDns];
+    if (!required.every(isIpv4) || (data.secondaryDns && !isIpv4(data.secondaryDns))) {
+      showFeedback("Enter valid IPv4 addresses before applying static network settings.", "error");
+      return;
+    }
+  }
   setBusy(true);
   try {
-    await api(path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(data) });
+    await api(path, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Halo-Request": "1" }, body: new URLSearchParams(data) });
     showFeedback("Saved. HALO CST is rebooting; reconnect using the configured address.");
   } catch (error) {
     showFeedback(error.message, "error");
@@ -421,7 +466,13 @@ $("redAlertEnabled").addEventListener("change", (event) => {
   void post("/api/red-alert", redAlertSettingsData(event.target.checked), event.target.checked ? "Red Alert monitoring enabled" : "Red Alert monitoring disabled");
 });
 $("redAlertSimulate").addEventListener("click", () => { void post("/api/red-alert/simulate", {}, "Red Alert visual test started"); });
+$("otaEnable").addEventListener("click", () => { void post("/api/ota", { enabled: "true", password: $("otaPassword").value, passwordConfirm: $("otaPasswordConfirm").value }, "OTA enabled for this session"); $("otaPassword").value = ""; $("otaPasswordConfirm").value = ""; });
+$("otaDisable").addEventListener("click", () => { void post("/api/ota", { enabled: "false" }, "OTA disabled"); });
+$("settingsExport").addEventListener("click", downloadSettingsBackup);
+$("settingsImport").addEventListener("click", () => $("settingsImportFile").click());
+$("settingsImportFile").addEventListener("change", (event) => { void restoreSettingsBackup(event.target.files[0]); event.target.value = ""; });
 $("redAlertFilter").addEventListener("input", (event) => renderRedAlertAreas(event.target.value));
+$("redAlertLocations").addEventListener("change", updateRedAlertSelectionHelp);
 
 $("networkLoad").addEventListener("click", () => { void loadNetwork(true); });
 $("networkMode").addEventListener("change", toggleStaticFields);

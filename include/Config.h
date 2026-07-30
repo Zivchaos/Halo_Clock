@@ -37,7 +37,7 @@ namespace Config
     constexpr uint8_t AUTO_NIGHT_END_HOUR = 6;
     constexpr uint8_t AUTO_NIGHT_END_MINUTE = 0;
 
-    // OTA is intentionally unauthenticated and must only be used on a trusted local network.
+    // OTA is disabled by default and requires an administrator password when enabled.
     constexpr uint8_t OTA_LED_BRIGHTNESS = 40;
     constexpr uint32_t OTA_READY_NOTICE_MS = 1500;
     constexpr uint32_t OTA_RESULT_NOTICE_MS = 3000;
@@ -72,14 +72,25 @@ namespace Config
     // only; official alerts and instructions always take precedence.
     constexpr const char* RED_ALERT_API_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
     constexpr const char* RED_ALERT_DEFAULT_RELAY_URL = "https://api.tzevaadom.co.il/notifications";
-    constexpr uint32_t RED_ALERT_POLL_INTERVAL_MS = 2000;
-    constexpr uint32_t RED_ALERT_FAILURE_BACKOFF_MS = 10000;
+    constexpr bool RED_ALERT_DEFAULT_ENABLED = false;
+    // Community HTTPS relays are polled conservatively so they remain a
+    // secondary visual aid without competing with clock rendering or weather.
+    constexpr uint32_t RED_ALERT_POLL_INTERVAL_MS = 15000;
+    constexpr uint32_t RED_ALERT_FAILURE_BACKOFF_MS = 30000;
     // Community providers behind CDN/TLS endpoints can take longer than the
     // local weather service to complete a first connection.
     constexpr uint32_t RED_ALERT_CONNECT_TIMEOUT_MS = 15000;
     constexpr uint32_t RED_ALERT_RESPONSE_TIMEOUT_MS = 15000;
+    // Keep TLS setup away from the clock's full redraw at the minute boundary.
+    constexpr uint8_t RED_ALERT_MINUTE_TRANSITION_GUARD_SECONDS = 3;
     constexpr size_t RED_ALERT_MAX_RESPONSE_BYTES = 4096;
     constexpr uint32_t RED_ALERT_TASK_STACK_SIZE = 8192;
+    // Keep TLS work off the Arduino loop core, which owns display rendering.
+    constexpr BaseType_t RED_ALERT_TASK_CORE = 0;
+    // Stop live polling before TLS allocation pressure can affect rendering.
+    // A reboot resets this guard; the saved Red Alert setting remains unchanged.
+    constexpr uint32_t RED_ALERT_MIN_FREE_HEAP_BYTES = 160UL * 1024UL;
+    constexpr bool RED_ALERT_LIVE_POLLING_ENABLED = true;
 
     // Compatibility contract: keep the legacy namespace so branded upgrades
     // retain brightness, display mode, and automatic NIGHT settings.
@@ -114,6 +125,11 @@ namespace Config
     constexpr bool ENABLE_RING_CALIBRATION = false;
 
     constexpr uint16_t WIFI_PORTAL_TIMEOUT_SECONDS = 300;
+    // Recover from a station interface that remains disconnected despite
+    // ESP32 auto-reconnect. These do not erase Wi-Fi credentials.
+    constexpr uint32_t WIFI_RECONNECT_INTERVAL_MS = 15UL * 1000UL;
+    constexpr uint32_t WIFI_STACK_RESET_AFTER_MS = 60UL * 1000UL;
+    constexpr uint32_t WIFI_REBOOT_AFTER_MS = 3UL * 60UL * 1000UL;
 
     constexpr const char* NTP_SERVER_PRIMARY = "pool.ntp.org";
     constexpr const char* NTP_SERVER_SECONDARY = "time.nist.gov";

@@ -37,7 +37,8 @@ namespace
         {80, 25, 0},
         {80, 80, 0},
         {0, 120, 255}};
-    RedAlertSettings redAlertSettings = {false, "", "https://api.tzevaadom.co.il/notifications"};
+    RedAlertSettings redAlertSettings = {
+        Config::RED_ALERT_DEFAULT_ENABLED, "", "https://api.tzevaadom.co.il/notifications"};
 
     constexpr uint32_t NETWORK_RECORD_MAGIC = 0x484E4554UL;
     constexpr uint8_t NETWORK_RECORD_VERSION = 1;
@@ -204,7 +205,8 @@ void SettingsService::begin()
     customColorSettings = {
         {18, 18, 18}, {80, 80, 0}, {255, 80, 0},
         {80, 25, 0}, {80, 80, 0}, {0, 120, 255}};
-    redAlertSettings = RedAlertSettings{false, "", "https://api.tzevaadom.co.il/notifications"};
+    redAlertSettings = RedAlertSettings{
+        Config::RED_ALERT_DEFAULT_ENABLED, "", "https://api.tzevaadom.co.il/notifications"};
     bool settingsDefaulted = !storageReady;
 
     if (hasUnsignedByteKey(Config::SETTINGS_BRIGHTNESS_KEY))

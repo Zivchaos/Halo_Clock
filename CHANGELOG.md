@@ -2,6 +2,27 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [Unreleased]
+
+### Red Alert hardening checkpoint
+
+- Kept the optional Israeli Red Alert companion disabled by default, with
+  persisted selected alert areas and a configurable HTTPS relay.
+- Corrected request cleanup so successful live checks release their TLS and
+  response resources before the worker task exits.
+- Added request counts, success/failure totals, duration, recovered heap, and
+  per-request low-heap telemetry to the local Web UI.
+- Added a minute-transition request guard and isolated live TLS work on the
+  ESP32 networking core to protect CLASSIC LED rendering.
+- Added automated coverage for polling gates, retry timing, low-heap safety,
+  minute-transition deferral, timer wraparound, parsing, and default-off
+  behavior.
+- Validated a nearly eight-hour manually enabled live soak: 1,594 successful
+  relay checks out of 1,597, stable clock/Web UI behavior, and no LED glitches.
+
+See [docs/RED_ALERT.md](docs/RED_ALERT.md) for operating limits and the
+official-alert disclaimer.
+
 ## [1.0.0] — 2026-07-20
 
 HALO CST 1.0.0 is the first public release of the Connected Smart Timepiece: a local-first ESP32 clock with a custom LED display engine, responsive embedded WebUI, persistent settings, weather, diagnostics, and OTA support.
@@ -34,7 +55,7 @@ HALO CST 1.0.0 is the first public release of the Connected Smart Timepiece: a l
 
 ### Known limitations
 
-- HALO CST remains a trusted-LAN device: the WebUI and ArduinoOTA service are unauthenticated and must not be exposed to the public Internet.
+- HALO CST remains a trusted-LAN device: keep the WebUI local, and never expose its ports publicly. ArduinoOTA is disabled by default and requires its administrator password for each enabled session.
 - Hardware enclosure photographs are not yet part of this release; the documented enclosure remains a maker prototype.
 - The supplied WebUI captures are representative desktop views; mobile and physical-prototype imagery can be added in a later release.
 
