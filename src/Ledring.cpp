@@ -71,6 +71,7 @@ void LedRing::begin(uint8_t brightness)
 {
     selectedBrightness = brightness;
     brightnessIndex = brightnessLevelIndex(brightness);
+    strip.setPin(SettingsService::hardware().ledData);
     strip.begin();
     strip.setBrightness(
         activeDisplayMode == DisplayMode::NIGHT ? Config::NIGHT_LED_BRIGHTNESS : selectedBrightness);

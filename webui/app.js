@@ -6,6 +6,7 @@ const state = {
   busy: false,
   diagnostics: null,
   networkLoaded: false,
+  hardwareLoaded: false,
   customizationLoaded: false,
   networkAction: "save",
   pollFailures: 0,
@@ -47,6 +48,9 @@ function syncControlState() {
   });
   document.querySelectorAll("[data-custom-control]").forEach((control) => {
     control.disabled = state.busy || !state.customizationLoaded;
+  });
+  document.querySelectorAll("[data-hardware-control]").forEach((control) => {
+    control.disabled = state.busy || !state.hardwareLoaded;
   });
   if (state.networkLoaded) toggleStaticFields();
 }
@@ -101,6 +105,8 @@ function applyStatus(status) {
   text("runningPartition", status.runningPartition);
   text("freeHeap", formatBytes(status.freeHeap));
   text("minimumHeap", formatBytes(status.minimumFreeHeap));
+  text("freeHeapOverview", formatBytes(status.freeHeap));
+  text("minimumHeapOverview", `Minimum ${formatBytes(status.minimumFreeHeap)}`);
 
   text("selected", status.selectedMode);
   text("effective", status.effectiveMode);
@@ -126,6 +132,7 @@ function applyStatus(status) {
   const apparent = weatherAvailable && Number.isFinite(Number(status.apparentTemperature)) ? `${Number(status.apparentTemperature).toFixed(1)}°C` : "—";
   const condition = weatherAvailable ? (status.condition || "Current conditions") : "Weather unavailable";
   text("weatherTemperature", temperature);
+  text("weatherOverviewTemperature", temperature);
   text("weatherTemperatureDetail", temperature);
   text("weatherCondition", condition);
   text("weatherConditionDetail", condition);
@@ -139,6 +146,7 @@ function applyStatus(status) {
   text("weatherState", weatherState);
   text("weatherAge", `${status.weatherStale ? "Stale" : (weatherAvailable ? "Current" : "Unavailable")}${lastUpdate !== "—" ? ` · ${lastUpdate}` : ""}`);
 
+  text("weatherOverviewDetail", weatherAvailable ? condition : (status.weatherError || "Unavailable"));
   text("diagnosticsSummary", status.wifiConnected && status.otaReady && !status.weatherStale ? "All systems normal" : "Review status");
   const lastCheck = status.redAlertHasSuccessfulCheck ? ` Last successful check ${Number(status.redAlertLastCheckAgeSeconds || 0)}s ago.` : "";
   const failureSuffix = Number(status.redAlertFailureCount || 0) > 1 ? ` (${status.redAlertFailureCount} failed checks)` : "";
@@ -149,6 +157,8 @@ function applyStatus(status) {
     : "";
   const providerState = !status.redAlertEnabled ? "Provider: disabled" : (status.redAlertTest ? "Provider: test in progress" : (status.redAlertStale ? `Provider: unavailable — retrying${requestTelemetry}` : (status.redAlertUpdating ? "Provider: checking" : `Provider: healthy${requestTelemetry}`)));
   text("redAlertProvider", providerState);
+  text("redAlertOverviewState", !status.redAlertEnabled ? "Disabled" : (status.redAlertActive ? "Active" : (status.redAlertStale ? "Unavailable" : "Monitoring")));
+  text("redAlertOverviewDetail", !status.redAlertEnabled ? "Visual aid only" : (status.redAlertActive ? (status.redAlertAreas || "Selected area") : (status.redAlertStale ? (status.redAlertError || "Relay unavailable") : "Selected areas")));
   if (!state.busy) $("redAlertEnabled").checked = Boolean(status.redAlertEnabled);
   if (!state.busy) {
     $("mode").value = status.selectedMode;
@@ -326,6 +336,48 @@ async function loadNetwork(force = false) {
   }
 }
 
+function hardwareSelects() {
+  return [$("hardwareLedData"), $("hardwareOledSda"), $("hardwareOledScl"), $("hardwareButton")];
+}
+
+function setHardwareOptions(allowedPins) {
+  const options = (allowedPins || []).map((pin) => new Option(`GPIO${pin}`, String(pin)));
+  hardwareSelects().forEach((select) => select.replaceChildren(...options.map((option) => option.cloneNode(true))));
+}
+
+async function loadHardware(force = false) {
+  if (state.hardwareLoaded && !force) return;
+  try {
+    const hardware = await api("/api/hardware");
+    if (!hardware.pins || !Array.isArray(hardware.allowedPins)) throw new Error("Hardware settings response is incomplete");
+    setHardwareOptions(hardware.allowedPins);
+    $("hardwareLedData").value = String(hardware.pins.ledData);
+    $("hardwareOledSda").value = String(hardware.pins.oledSda);
+    $("hardwareOledScl").value = String(hardware.pins.oledScl);
+    $("hardwareButton").value = String(hardware.pins.button);
+    state.hardwareLoaded = true;
+  } catch (error) {
+    state.hardwareLoaded = false;
+    showFeedback(error.message, "error");
+  } finally {
+    syncControlState();
+  }
+}
+
+function hardwareData() {
+  return {
+    ledData: $("hardwareLedData").value,
+    oledSda: $("hardwareOledSda").value,
+    oledScl: $("hardwareOledScl").value,
+    button: $("hardwareButton").value
+  };
+}
+
+function validateHardwareSelection() {
+  const pins = Object.values(hardwareData());
+  return pins.length === 4 && pins.every((pin) => /^\d+$/.test(pin)) && new Set(pins).size === pins.length;
+}
+
 async function loadCustomization() {
   try {
     const settings = await api("/api/customization");
@@ -419,6 +471,7 @@ document.querySelectorAll("[data-section-link]").forEach((link) => link.addEvent
   const section = link.dataset.sectionLink;
   document.querySelectorAll("[data-section-link]").forEach((item) => item.classList.toggle("active", item.dataset.sectionLink === section));
   if (section === "network") void loadNetwork();
+  if (section === "settings") void loadHardware();
 }));
 document.querySelectorAll("[data-jump]").forEach((button) => button.addEventListener("click", () => jumpToControl(button.dataset.jump)));
 
@@ -468,6 +521,17 @@ $("redAlertEnabled").addEventListener("change", (event) => {
 $("redAlertSimulate").addEventListener("click", () => { void post("/api/red-alert/simulate", {}, "Red Alert visual test started"); });
 $("otaEnable").addEventListener("click", () => { void post("/api/ota", { enabled: "true", password: $("otaPassword").value, passwordConfirm: $("otaPasswordConfirm").value }, "OTA enabled for this session"); $("otaPassword").value = ""; $("otaPasswordConfirm").value = ""; });
 $("otaDisable").addEventListener("click", () => { void post("/api/ota", { enabled: "false" }, "OTA disabled"); });
+$("hardwareLoad").addEventListener("click", () => { void loadHardware(true); });
+$("hardwareForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!validateHardwareSelection()) { showFeedback("Each hardware role needs a different safe pin", "error"); return; }
+  $("hardwareDialog").showModal();
+});
+$("hardwareCancel").addEventListener("click", () => $("hardwareDialog").close());
+$("hardwareConfirm").addEventListener("click", () => {
+  $("hardwareDialog").close();
+  void post("/api/hardware", { ...hardwareData(), confirm: "true" }, "Hardware map saved. HALO is rebooting.");
+});
 $("settingsExport").addEventListener("click", downloadSettingsBackup);
 $("settingsImport").addEventListener("click", () => $("settingsImportFile").click());
 $("settingsImportFile").addEventListener("change", (event) => { void restoreSettingsBackup(event.target.files[0]); event.target.value = ""; });
@@ -497,6 +561,7 @@ syncControlState();
 renderRedAlertAreas();
 void refreshStatus();
 void loadCustomization();
+void loadHardware();
 window.setInterval(refreshStatus, POLL_INTERVAL_MS);
 
 }

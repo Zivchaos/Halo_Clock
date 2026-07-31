@@ -50,6 +50,14 @@ struct RedAlertSettings
     char relayUrl[256];
 };
 
+struct HardwareSettings
+{
+    uint8_t ledData;
+    uint8_t oledSda;
+    uint8_t oledScl;
+    uint8_t button;
+};
+
 class SettingsService
 {
 public:
@@ -74,4 +82,8 @@ public:
     static bool saveCustomColors(const CustomColorSettings& settings);
     static const RedAlertSettings& redAlert();
     static bool saveRedAlert(const RedAlertSettings& settings);
+    static const HardwareSettings& hardware();
+    static bool saveHardware(const HardwareSettings& settings);
+    static bool isHardwarePinAllowed(uint8_t pin);
+    static bool isHardwareSettingsValid(const HardwareSettings& settings);
 };

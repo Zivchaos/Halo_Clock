@@ -39,6 +39,9 @@ namespace
         {0, 120, 255}};
     RedAlertSettings redAlertSettings = {
         Config::RED_ALERT_DEFAULT_ENABLED, "", "https://api.tzevaadom.co.il/notifications"};
+    HardwareSettings hardwareSettings = {
+        Hardware::LED_PIN, Hardware::OLED_SDA, Hardware::OLED_SCL, Hardware::BUTTON_PIN};
+    bool hardwareStored = false;
 
     constexpr uint32_t NETWORK_RECORD_MAGIC = 0x484E4554UL;
     constexpr uint8_t NETWORK_RECORD_VERSION = 1;
@@ -48,6 +51,10 @@ namespace
     constexpr uint8_t CUSTOM_COLORS_VERSION = 1;
     constexpr uint32_t RED_ALERT_MAGIC = 0x4852414CUL;
     constexpr uint8_t RED_ALERT_VERSION = 1;
+    constexpr uint32_t HARDWARE_MAGIC = 0x48415752UL;
+    constexpr uint8_t HARDWARE_VERSION = 1;
+    constexpr uint8_t SAFE_HARDWARE_PINS[] = {
+        16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 
     struct __attribute__((packed)) PersistedNetworkSettings
     {
@@ -88,6 +95,14 @@ namespace
         uint8_t enabled;
         char locations[512];
         char relayUrl[256];
+        uint32_t checksum;
+    };
+
+    struct __attribute__((packed)) PersistedHardwareSettings
+    {
+        uint32_t magic;
+        uint8_t version;
+        HardwareSettings pins;
         uint32_t checksum;
     };
 
@@ -183,6 +198,24 @@ namespace
         return settings.locations[sizeof(settings.locations) - 1] == '\0' &&
             settings.relayUrl[sizeof(settings.relayUrl) - 1] == '\0';
     }
+
+    bool isSafeHardwarePin(uint8_t pin)
+    {
+        for (const uint8_t allowed : SAFE_HARDWARE_PINS)
+        {
+            if (pin == allowed) return true;
+        }
+        return false;
+    }
+
+    bool validHardwareSettings(const HardwareSettings& settings)
+    {
+        return isSafeHardwarePin(settings.ledData) && isSafeHardwarePin(settings.oledSda) &&
+            isSafeHardwarePin(settings.oledScl) && isSafeHardwarePin(settings.button) &&
+            settings.ledData != settings.oledSda && settings.ledData != settings.oledScl &&
+            settings.ledData != settings.button && settings.oledSda != settings.oledScl &&
+            settings.oledSda != settings.button && settings.oledScl != settings.button;
+    }
 }
 
 void SettingsService::begin()
@@ -207,6 +240,8 @@ void SettingsService::begin()
         {80, 25, 0}, {80, 80, 0}, {0, 120, 255}};
     redAlertSettings = RedAlertSettings{
         Config::RED_ALERT_DEFAULT_ENABLED, "", "https://api.tzevaadom.co.il/notifications"};
+    hardwareSettings = {Hardware::LED_PIN, Hardware::OLED_SDA, Hardware::OLED_SCL, Hardware::BUTTON_PIN};
+    hardwareStored = false;
     bool settingsDefaulted = !storageReady;
 
     if (hasUnsignedByteKey(Config::SETTINGS_BRIGHTNESS_KEY))
@@ -370,6 +405,27 @@ void SettingsService::begin()
                 }
                 redAlertSettings = loaded;
             }
+        }
+    }
+
+    if (storageReady && preferences.isKey(Config::SETTINGS_HARDWARE_KEY) &&
+        preferences.getType(Config::SETTINGS_HARDWARE_KEY) == PT_BLOB &&
+        preferences.getBytesLength(Config::SETTINGS_HARDWARE_KEY) == sizeof(PersistedHardwareSettings))
+    {
+        PersistedHardwareSettings record = {};
+        if (preferences.getBytes(Config::SETTINGS_HARDWARE_KEY, &record, sizeof(record)) == sizeof(record) &&
+            record.magic == HARDWARE_MAGIC && record.version == HARDWARE_VERSION &&
+            record.checksum == bytesChecksum(&record, offsetof(PersistedHardwareSettings, checksum)) &&
+            validHardwareSettings(record.pins))
+        {
+            hardwareSettings = record.pins;
+            hardwareStored = true;
+            Serial.printf("HARDWARE SETTINGS LOADED: LED %u, OLED %u/%u, BUTTON %u\r\n",
+                hardwareSettings.ledData, hardwareSettings.oledSda, hardwareSettings.oledScl, hardwareSettings.button);
+        }
+        else
+        {
+            Serial.println("HARDWARE SETTINGS DEFAULTED");
         }
     }
 
@@ -625,4 +681,38 @@ bool SettingsService::saveRedAlert(const RedAlertSettings& settings)
     redAlertSettings = settings;
     Serial.println("RED ALERT SETTINGS SAVED");
     return true;
+}
+
+const HardwareSettings& SettingsService::hardware()
+{
+    return hardwareSettings;
+}
+
+bool SettingsService::saveHardware(const HardwareSettings& settings)
+{
+    if (!storageReady || !validHardwareSettings(settings)) return false;
+    if (hardwareStored && memcmp(&settings, &hardwareSettings, sizeof(settings)) == 0) return true;
+
+    PersistedHardwareSettings record = {};
+    record.magic = HARDWARE_MAGIC;
+    record.version = HARDWARE_VERSION;
+    record.pins = settings;
+    record.checksum = bytesChecksum(&record, offsetof(PersistedHardwareSettings, checksum));
+    if (preferences.putBytes(Config::SETTINGS_HARDWARE_KEY, &record, sizeof(record)) != sizeof(record)) return false;
+
+    hardwareSettings = settings;
+    hardwareStored = true;
+    Serial.printf("HARDWARE SETTINGS SAVED: LED %u, OLED %u/%u, BUTTON %u\r\n",
+        settings.ledData, settings.oledSda, settings.oledScl, settings.button);
+    return true;
+}
+
+bool SettingsService::isHardwarePinAllowed(uint8_t pin)
+{
+    return isSafeHardwarePin(pin);
+}
+
+bool SettingsService::isHardwareSettingsValid(const HardwareSettings& settings)
+{
+    return validHardwareSettings(settings);
 }

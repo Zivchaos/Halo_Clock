@@ -4,6 +4,7 @@
 
 #include "Config.h"
 #include "Hardware.h"
+#include "SettingsService.h"
 
 namespace
 {
@@ -22,13 +23,13 @@ namespace
 
 void Button::begin()
 {
-    pinMode(Hardware::BUTTON_PIN, INPUT_PULLUP);
+    pinMode(SettingsService::hardware().button, INPUT_PULLUP);
     recoveryWindowStarted = false;
 }
 
 ButtonEvent Button::update()
 {
-    const bool reading = digitalRead(Hardware::BUTTON_PIN);
+    const bool reading = digitalRead(SettingsService::hardware().button);
     const uint32_t now = millis();
     if (!recoveryWindowStarted)
     {

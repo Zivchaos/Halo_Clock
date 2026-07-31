@@ -804,6 +804,61 @@ namespace
         Serial.printf("WEB NETWORK APPLY: %s\r\n", NetworkConfig::modeName(settings.mode));
     }
 
+    void handleHardwareGet()
+    {
+        Serial.println("WEB REQUEST: GET /api/hardware");
+        const HardwareSettings& hardware = SettingsService::hardware();
+        JsonDocument document;
+        JsonObject pins = document["pins"].to<JsonObject>();
+        pins["ledData"] = hardware.ledData;
+        pins["oledSda"] = hardware.oledSda;
+        pins["oledScl"] = hardware.oledScl;
+        pins["button"] = hardware.button;
+        JsonArray allowed = document["allowedPins"].to<JsonArray>();
+        for (uint8_t pin = 0; pin < 40; ++pin)
+        {
+            if (SettingsService::isHardwarePinAllowed(pin)) allowed.add(pin);
+        }
+        String body;
+        body.reserve(240);
+        serializeJson(document, body);
+        sendSecurityHeaders();
+        server.sendHeader("Cache-Control", "no-store");
+        server.send(200, "application/json", body);
+    }
+
+    void handleHardwareSave()
+    {
+        Serial.println("WEB REQUEST: POST /api/hardware");
+        if (!changesAllowed()) return;
+        if (!server.hasArg("confirm") || server.arg("confirm") != "true")
+        {
+            sendError(400, "hardware change confirmation required");
+            return;
+        }
+
+        HardwareSettings settings = {};
+        if (!parseByteArgument("ledData", 39, settings.ledData) ||
+            !parseByteArgument("oledSda", 39, settings.oledSda) ||
+            !parseByteArgument("oledScl", 39, settings.oledScl) ||
+            !parseByteArgument("button", 39, settings.button) ||
+            !SettingsService::isHardwareSettingsValid(settings))
+        {
+            sendError(400, "invalid or conflicting hardware pins");
+            return;
+        }
+        if (!SettingsService::saveHardware(settings))
+        {
+            sendError(500, "hardware settings could not be saved");
+            return;
+        }
+
+        sendJson(200, "{\"ok\":true,\"rebootScheduled\":true}");
+        rebootRequestedAt = millis();
+        rebootScheduled = true;
+        Serial.println("WEB HARDWARE APPLY: REBOOT SCHEDULED");
+    }
+
     void handleNetworkReset()
     {
         Serial.println("WEB REQUEST: POST /api/network/reset");
@@ -853,6 +908,8 @@ namespace
         server.on("/api/network", HTTP_GET, handleNetworkGet);
         server.on("/api/network", HTTP_POST, handleNetworkSave);
         server.on("/api/network/reset", HTTP_POST, handleNetworkReset);
+        server.on("/api/hardware", HTTP_GET, handleHardwareGet);
+        server.on("/api/hardware", HTTP_POST, handleHardwareSave);
         server.on("/api/mode", HTTP_POST, handleMode);
         server.on("/api/brightness", HTTP_POST, handleBrightness);
         server.on("/api/auto-night", HTTP_POST, handleAutoNight);

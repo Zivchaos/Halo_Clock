@@ -6,6 +6,7 @@
 
 #include "Config.h"
 #include "Hardware.h"
+#include "SettingsService.h"
 #include "Version.h"
 
 namespace
@@ -22,7 +23,8 @@ namespace
 
 void Oled::begin()
 {
-    Wire.begin(Hardware::OLED_SDA, Hardware::OLED_SCL);
+    const HardwareSettings& hardware = SettingsService::hardware();
+    Wire.begin(hardware.oledSda, hardware.oledScl);
     oled.setI2CAddress(Hardware::OLED_ADDRESS << 1);
     oled.begin();
     oled.setContrast(255);

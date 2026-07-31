@@ -109,6 +109,7 @@ namespace Config
     constexpr const char* SETTINGS_WEATHER_LOCATION_KEY = "weatherLoc";
     constexpr const char* SETTINGS_CUSTOM_COLORS_KEY = "customLed";
     constexpr const char* SETTINGS_RED_ALERT_KEY = "redAlert";
+    constexpr const char* SETTINGS_HARDWARE_KEY = "hardware";
 
     constexpr uint8_t STATIC_NETWORK_FAILURE_LIMIT = 2;
     constexpr uint32_t STATIC_NETWORK_VALIDATION_TIMEOUT_MS = 45UL * 1000UL;
