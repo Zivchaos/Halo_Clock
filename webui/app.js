@@ -2,6 +2,7 @@
 
 const $ = (id) => document.getElementById(id);
 const POLL_INTERVAL_MS = 3000;
+const LIVE_CLOCK_INTERVAL_MS = 1000;
 const state = {
   busy: false,
   diagnostics: null,
@@ -11,6 +12,7 @@ const state = {
   networkAction: "save",
   pollFailures: 0,
   statusInFlight: false,
+  liveClockSeconds: null,
   toastTimer: 0
 };
 
@@ -31,6 +33,26 @@ function formatBytes(value) {
   const bytes = Number(value);
   if (!Number.isFinite(bytes)) return "—";
   return bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KiB` : `${bytes} B`;
+}
+
+function setLiveClock(value) {
+  const match = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(value || "");
+  if (!match) {
+    state.liveClockSeconds = null;
+    text("clock", value || "--:--:--");
+    return;
+  }
+  state.liveClockSeconds = Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+  text("clock", value);
+}
+
+function tickLiveClock() {
+  if (!Number.isInteger(state.liveClockSeconds)) return;
+  state.liveClockSeconds = (state.liveClockSeconds + 1) % 86400;
+  const hours = Math.floor(state.liveClockSeconds / 3600);
+  const minutes = Math.floor((state.liveClockSeconds % 3600) / 60);
+  const seconds = state.liveClockSeconds % 60;
+  text("clock", `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
 }
 
 function showFeedback(message, kind = "success") {
@@ -88,7 +110,7 @@ function applyStatus(status) {
   state.pollFailures = 0;
   setConnectionState(Boolean(status.wifiConnected));
 
-  text("clock", status.time || "--:--:--");
+  setLiveClock(status.time || "");
   text("clockDate", status.date || "Time unavailable");
   text("clockModeCaption", `${status.effectiveMode || "—"} rendering`);
   text("clockNightCaption", `NIGHT ${status.autoNightActive ? "active" : "scheduled"} · ${status.autoNightStart || "—"}–${status.autoNightEnd || "—"}`);
@@ -563,6 +585,7 @@ void refreshStatus();
 void loadCustomization();
 void loadHardware();
 window.setInterval(refreshStatus, POLL_INTERVAL_MS);
+window.setInterval(tickLiveClock, LIVE_CLOCK_INTERVAL_MS);
 
 }
 
