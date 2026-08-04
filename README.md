@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/Zivchaos/Halo_Clock/actions/workflows/platformio.yml"><img src="https://github.com/Zivchaos/Halo_Clock/actions/workflows/platformio.yml/badge.svg" alt="Firmware build"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22D3EE.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/firmware-1.1.0--israel--rc2-101820.svg" alt="Firmware 1.1.0-israel-rc2">
+  <img src="https://img.shields.io/badge/firmware-1.1.0--israel-101820.svg" alt="Firmware 1.1.0-israel">
   <img src="https://img.shields.io/badge/platform-ESP32-22C55E.svg" alt="ESP32">
 </p>
 
@@ -189,7 +189,7 @@ Cloud telemetry, forecasts, and remote dashboards are intentionally outside the 
 
 ## Releases
 
-Israeli Red Alert release candidate: **1.1.0-israel-rc2**. This branch keeps the optional Red Alert companion disabled by default; it is a visual aid only and never replaces official Home Front Command alerts or instructions. Milestone history is recorded in [CHANGELOG.md](CHANGELOG.md); prototype and release tags preserve historical firmware states.
+Israeli Red Alert stable release: **1.1.0-israel**. This branch keeps the optional Red Alert companion disabled by default; it is a visual aid only and never replaces official Home Front Command alerts or instructions. Milestone history is recorded in [CHANGELOG.md](CHANGELOG.md); prototype and release tags preserve historical firmware states.
 
 ## Red Alert credits
 

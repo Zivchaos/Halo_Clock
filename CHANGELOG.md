@@ -2,6 +2,21 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [1.1.0-israel] — 2026-08-04
+
+### Stable Israeli Red Alert release
+
+- Promoted the optional Israeli Red Alert companion after a 48-hour live soak
+  with selected areas retained, responsive local Web UI, stable clock modes,
+  and no observed LED glitches.
+- Added configurable supported LED, OLED, and button pins to the local Web UI
+  with validation, conflict checks, and reboot confirmation.
+- Refreshed the local Web UI with glass styling, a balanced overview, weather
+  and heap cards, and a one-second Live Clock repaint independent of the
+  three-second status polling interval.
+- Published the dedicated Israeli release as a stable tag. Red Alert remains
+  disabled by default and is always a visual aid only.
+
 ## [1.1.0-israel-rc2] â€” 2026-07-30
 
 ### Release automation

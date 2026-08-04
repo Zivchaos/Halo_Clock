@@ -21,7 +21,7 @@ Time should be beautiful, readable, calm, and locally controlled. The LED ring c
 
 - Product: HALO CST
 - Expanded name: Connected Smart Timepiece
-- Firmware: 1.1.0-israel-rc2 (Israeli Red Alert release candidate)
+- Firmware: 1.1.0-israel (Israeli Red Alert stable release)
 - Hostname and OTA target: `halo-cst`
 - Setup access point: `HALO-CST-Setup`
 - Local dashboard: `http://halo-cst.local`
@@ -30,6 +30,6 @@ These values are centralized in `include/Version.h`. Internal class names such a
 
 ## Current scope
 
-This Israeli Red Alert release candidate includes synchronized time, four display modes, automatic NIGHT, persistent settings, ring calibration, WiFiManager provisioning, ArduinoOTA, a local Web UI/API, cached current weather, RAM-only diagnostics, and an optional Red Alert visual companion disabled by default.
+This Israeli Red Alert stable release includes synchronized time, four display modes, automatic NIGHT, persistent settings, ring calibration, WiFiManager provisioning, ArduinoOTA, a local Web UI/API, cached current weather, RAM-only diagnostics, configurable supported hardware pins, and an optional Red Alert visual companion disabled by default.
 
 It deliberately excludes cloud telemetry, forecasts, alarms, browser firmware upload, authentication, filesystem storage, and extra display modes.
