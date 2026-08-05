@@ -607,6 +607,28 @@ namespace
         sendJson(200, "{\"ok\":true}");
     }
 
+    void handleOtaPasswordChange()
+    {
+        if (!changesAllowed()) return;
+        if (!server.hasArg("currentPassword") || !server.hasArg("newPassword") || !server.hasArg("newPasswordConfirm"))
+        {
+            sendError(400, "current password and new password confirmation are required"); return;
+        }
+        if (server.arg("newPassword") != server.arg("newPasswordConfirm"))
+        {
+            sendError(400, "new OTA password confirmation does not match"); return;
+        }
+        if (server.arg("newPassword").isEmpty())
+        {
+            sendError(400, "new OTA admin password is required"); return;
+        }
+        if (!OtaService::changePassword(server.arg("currentPassword").c_str(), server.arg("newPassword").c_str()))
+        {
+            sendError(403, "current OTA admin password is invalid"); return;
+        }
+        sendJson(200, "{\"ok\":true}");
+    }
+
     void handleMode()
     {
         Serial.println("WEB REQUEST: POST /api/mode");
@@ -920,6 +942,7 @@ namespace
         server.on("/api/red-alert", HTTP_POST, handleRedAlertSettings);
         server.on("/api/red-alert/simulate", HTTP_POST, handleRedAlertSimulation);
         server.on("/api/ota", HTTP_POST, handleOtaSettings);
+        server.on("/api/ota/password", HTTP_POST, handleOtaPasswordChange);
         server.on("/api/reboot", HTTP_POST, handleReboot);
         server.onNotFound([]() {
             Serial.printf("WEB REQUEST: %s %s\r\n", server.method() == HTTP_POST ? "POST" : "GET", server.uri().c_str());

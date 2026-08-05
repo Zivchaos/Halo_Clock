@@ -28,6 +28,15 @@ namespace
         return storedPasswordHash[0] != '\0' ? storedPasswordHash : OtaAuth::passwordHash;
     }
 
+    String passwordHash(const char* password)
+    {
+        MD5Builder digest;
+        digest.begin();
+        digest.add(password);
+        digest.calculate();
+        return digest.toString();
+    }
+
     void startNotice(uint32_t durationMs)
     {
         noticeStartedAt = millis();
@@ -177,11 +186,7 @@ bool OtaService::isConfigured()
 bool OtaService::enableForSession(const char* password)
 {
     if (password == nullptr || password[0] == '\0') return false;
-    MD5Builder digest;
-    digest.begin();
-    digest.add(password);
-    digest.calculate();
-    const String candidate = digest.toString();
+    const String candidate = passwordHash(password);
     if (!isConfigured())
     {
         if (!preferences.putString("otaHash", candidate)) return false;
@@ -189,6 +194,26 @@ bool OtaService::enableForSession(const char* password)
     }
     else if (candidate != configuredPasswordHash()) return false;
     sessionEnabled = true;
+    return true;
+}
+
+bool OtaService::changePassword(const char* currentPassword, const char* newPassword)
+{
+    if (currentPassword == nullptr || currentPassword[0] == '\0' ||
+        newPassword == nullptr || newPassword[0] == '\0' || !isConfigured())
+    {
+        return false;
+    }
+    if (passwordHash(currentPassword) != configuredPasswordHash()) return false;
+
+    const String replacement = passwordHash(newPassword);
+    if (!preferences.putString("otaHash", replacement)) return false;
+    snprintf(storedPasswordHash, sizeof(storedPasswordHash), "%s", replacement.c_str());
+
+    if (initialized) ArduinoOTA.end();
+    initialized = false;
+    sessionEnabled = false;
+    noticeVisible = false;
     return true;
 }
 
