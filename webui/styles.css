@@ -208,6 +208,9 @@ select:disabled, input:disabled, button:disabled { opacity: .52; cursor: not-all
 .system-card .button { margin-top: 18px; }
 .ota-fields { display: grid; gap: 14px; margin-top: 18px; }
 .ota-fields label { display: block; }
+.ota-password-change { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.ota-password-change summary { color: var(--cyan-soft); cursor: pointer; font-size: .78rem; font-weight: 650; }
+.ota-password-change p { margin: 10px 0 0; color: var(--muted); font-size: .74rem; line-height: 1.6; }
 .hardware-panel { margin-top: 14px; }
 .hardware-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
 .hardware-note { display: grid; gap: 4px; padding: 13px 15px; border: 1px solid rgba(245, 158, 11, .32); border-left: 3px solid var(--amber); border-radius: 8px; background: rgba(245, 158, 11, .06); }

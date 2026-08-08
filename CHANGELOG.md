@@ -2,6 +2,18 @@
 
 Notable project milestones are recorded here. HALO CST follows semantic versioning for stable public releases.
 
+## [1.1.1-israel] — 2026-08-08
+
+### OTA password-management patch
+
+- Added an explicit local Web UI flow to change the ArduinoOTA administrator
+  password using the current password plus confirmed replacement.
+- Clarified that OTA service access is disabled on reboot while its password
+  hash remains available for future manual activations.
+- Confirmed a real OTA transfer with a changed mixed-character password, then
+  completed a further 48-hour stable run without clock, Web UI, LED, or Red
+  Alert regressions.
+
 ## [1.1.0-israel] — 2026-08-04
 
 ### Stable Israeli Red Alert release

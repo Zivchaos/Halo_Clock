@@ -386,6 +386,40 @@ async function loadHardware(force = false) {
   }
 }
 
+async function enableOta() {
+  const enabled = await post("/api/ota", {
+    enabled: "true",
+    password: $("otaPassword").value,
+    passwordConfirm: $("otaPasswordConfirm").value
+  }, "OTA enabled for this session");
+  if (enabled) {
+    $("otaPassword").value = "";
+    $("otaPasswordConfirm").value = "";
+  }
+}
+
+async function changeOtaPassword() {
+  const currentPassword = $("otaCurrentPassword").value;
+  const newPassword = $("otaNewPassword").value;
+  const newPasswordConfirm = $("otaNewPasswordConfirm").value;
+  if (newPassword !== newPasswordConfirm) {
+    showFeedback("New OTA password confirmation does not match", "error");
+    return;
+  }
+  const changed = await post("/api/ota/password", {
+    currentPassword,
+    newPassword,
+    newPasswordConfirm
+  }, "OTA password changed. Re-enter it to enable OTA.");
+  if (changed) {
+    $("otaCurrentPassword").value = "";
+    $("otaNewPassword").value = "";
+    $("otaNewPasswordConfirm").value = "";
+    $("otaPassword").value = "";
+    $("otaPasswordConfirm").value = "";
+  }
+}
+
 function hardwareData() {
   return {
     ledData: $("hardwareLedData").value,
@@ -541,8 +575,9 @@ $("redAlertEnabled").addEventListener("change", (event) => {
   void post("/api/red-alert", redAlertSettingsData(event.target.checked), event.target.checked ? "Red Alert monitoring enabled" : "Red Alert monitoring disabled");
 });
 $("redAlertSimulate").addEventListener("click", () => { void post("/api/red-alert/simulate", {}, "Red Alert visual test started"); });
-$("otaEnable").addEventListener("click", () => { void post("/api/ota", { enabled: "true", password: $("otaPassword").value, passwordConfirm: $("otaPasswordConfirm").value }, "OTA enabled for this session"); $("otaPassword").value = ""; $("otaPasswordConfirm").value = ""; });
+$("otaEnable").addEventListener("click", () => { void enableOta(); });
 $("otaDisable").addEventListener("click", () => { void post("/api/ota", { enabled: "false" }, "OTA disabled"); });
+$("otaChangePassword").addEventListener("click", () => { void changeOtaPassword(); });
 $("hardwareLoad").addEventListener("click", () => { void loadHardware(true); });
 $("hardwareForm").addEventListener("submit", (event) => {
   event.preventDefault();
